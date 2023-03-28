@@ -26,17 +26,25 @@ using namespace mlir::ub;
 
 void PoisonOp::print(OpAsmPrinter &p)
 {
-    if (!getValue().isPoison()) {
-        p << " ";
-        p.printStrippedAttrOrType(getValue());
+    if (getValue().isPoison()) {
+        p << " : " << getType();
+        return;
     }
-    p << " : " << getType();
+
+    p << " " << getValue();
 }
 
 ParseResult PoisonOp::parse(OpAsmParser &p, OperationState &result)
 {
     PoisonAttr value;
-    if (p.parseCustomAttributeWithFallback(value)) return failure();
+    if (!p.parseOptionalColon()) {
+        Type type;
+        if (p.parseType(type)) return failure();
+        value = PoisonAttr::get(type);
+    } else {
+        if (p.parseAttribute(value)) return failure();
+    }
+
     result.addAttribute(getAttributeNames()[0], value);
     result.addTypes(value.getType());
     return success();
