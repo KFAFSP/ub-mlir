@@ -260,6 +260,19 @@ LogicalResult PoisonAttr::verify(
 }
 
 //===----------------------------------------------------------------------===//
+// Helper functions
+//===----------------------------------------------------------------------===//
+
+bool mlir::ub::isPoison(OpResult result)
+{
+    const auto def = result.getOwner();
+    if (!def->hasTrait<OpTrait::ConstantLike>()) return false;
+    SmallVector<OpFoldResult> results;
+    if (failed(def->fold({}, results))) return false;
+    return isPoison(results[result.getResultNumber()]);
+}
+
+//===----------------------------------------------------------------------===//
 // UBDialect
 //===----------------------------------------------------------------------===//
 

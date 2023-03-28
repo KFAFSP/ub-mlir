@@ -6,6 +6,7 @@
 #pragma once
 
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "ub-mlir/Dialect/UB/IR/Base.h"
 
@@ -85,6 +86,38 @@ public:
 //===----------------------------------------------------------------------===//
 
 namespace mlir::ub {
+
+//===----------------------------------------------------------------------===//
+// Helper functions
+//===----------------------------------------------------------------------===//
+
+/// Determines whether @p attr is guaranteed poison.
+[[nodiscard]] inline bool isPoison(PoisonAttr attr) { return attr.isPoison(); }
+/// Determines whether @p attr is guaranteed poison.
+[[nodiscard]] inline bool isPoison(Attribute attr)
+{
+    if (const auto poisonAttr = attr.dyn_cast<PoisonAttr>())
+        return isPoison(poisonAttr);
+    return false;
+}
+/// Determines whether @p result is guaranteed poison.
+[[nodiscard]] bool isPoison(OpResult result);
+/// Determines whether @p value is guaranteed poison.
+[[nodiscard]] inline bool isPoison(Value value)
+{
+    if (const auto result = value.dyn_cast<OpResult>()) return isPoison(result);
+    return false;
+}
+/// Determines whether @p value is guaranteed poison.
+[[nodiscard]] inline bool isPoison(OpFoldResult value)
+{
+    if (const auto attr = value.dyn_cast<Attribute>()) return isPoison(attr);
+    return false;
+}
+
+//===----------------------------------------------------------------------===//
+// ValueOrPoisonAttr
+//===----------------------------------------------------------------------===//
 
 /// Concept for an attribute that is either @p ValueAttr or a PoisonAttr of it.
 ///
