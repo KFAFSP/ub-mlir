@@ -133,7 +133,10 @@ public:
         // NOTE: If the union of poison masks is 0, we could return the
         //       ValueAttr directly. If we don't, the Unpoison canonicalization
         //       will get it though.
-        return PoisonAttr::get(sourceDialect, sourceAttr, poisonMask);
+        return PoisonAttr::get(
+            sourceDialect,
+            sourceAttr.cast<TypedOrTypeAttr>(),
+            poisonMask);
     }
     /// Builds a (partially) poisoned attribute for @p sourceAttr .
     ///
