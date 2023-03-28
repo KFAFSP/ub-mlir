@@ -33,6 +33,26 @@ def UB_PoisonOp
                 DeclareOpInterfaceMethods<
                     InferTypeOpInterface,
                     ["inferReturnTypes"]>]> {
+    let summary = "Poisoned constant operation";
+    let description = [{
+        The `poison` operation materializes a compile-time constant value that
+        may be fully or partially poisoned, i.e., indicate undefined behavior.
+        If the represented value is well-defined, it will be canonicalized to
+        the source attribute materialization.
+
+        Syntax:
+
+        ```
+        poison-op ::= `poison` $value
+        ```
+
+        Examples:
+
+        ```
+        %0 = ub.poison : tensor<3xi16>
+        ```
+    }];
+
     let arguments = (ins UB_PoisonAttr:$value);
 
     // NOTE: The assemblyFormat does not want to work correctly...
@@ -60,7 +80,31 @@ def UB_PoisonOp
 def UB_FreezeOp
         : UB_Op<
             "freeze",
-            [Pure, SameOperandsAndResultType, OpAsmOpInterface]> {
+            [
+                Pure,
+                SameOperandsAndResultType,
+                OpAsmOpInterface]
+                # ElementwiseMappable.traits> {
+    let summary = "Concretization of a poisoned value";
+    let description = [{
+        The `freeze` operation concretizes a potentially poisoned value. If the
+        input operand is well-defined, the freeze operation is folded away.
+        Otherwise, it remains, and instanciates an arbitrary but fixed value of
+        its result type. Thus, it stops the propagation of poisoned values.
+
+        Syntax:
+
+        ```
+        freeze-op ::= `freeze` $operand `:` type
+        ```
+
+        Examples:
+
+        ```
+        %0 = ub.freeze %poison : tensor<3xi16>
+        ```
+    }];
+
     let arguments = (ins AnyType:$operand);
     let results = (outs AnyType:$result);
 

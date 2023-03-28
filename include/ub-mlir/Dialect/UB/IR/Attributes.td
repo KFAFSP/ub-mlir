@@ -20,18 +20,30 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
     let mnemonic = "poison";
     let summary = "Poisoned value attribute";
     let description = [{
-        TODO
+        The `poison` attribute represents a compile-time constant value that is
+        the result of undefined behavior. It can also represent a constant
+        container value which is only partially poisoned.
 
         Syntax:
 
         ```
-        TODO
+        poison-attr ::= (`<` (poison-spec `,`)? source-attr `>` `:`)? type
+        poison-spec ::= `"` [0-9a-fA-F]+ `"`
+        source-attr ::= dialect-name `(` attr-value `)`
         ```
 
         Example:
 
         ```
-        TODO
+        // Fully poisoned.
+        #ub.poison : i16
+
+        // Partially poisoned.
+        #ub.poison<"03", arith(dense<[0,1,2]>)> : tensor<3xi16>
+
+        // Not poisoned. Will be materialized by the source dialect.
+        #ub.poison<arith(0)> : i16
+        #ub.poison<arith(dense<[0,1,2]>)> : tensor<3xi16>
         ```
     }];
 
@@ -106,9 +118,5 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
         }
     }];
 }
-
-//===----------------------------------------------------------------------===//
-// PoisonedAttr
-//===----------------------------------------------------------------------===//
 
 #endif

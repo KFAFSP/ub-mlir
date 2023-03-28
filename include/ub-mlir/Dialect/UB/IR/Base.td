@@ -7,7 +7,6 @@
 #ifndef UB_BASE
 #define UB_BASE
 
-include "ub-mlir/Dialect/UB/Interfaces/Interfaces.td"
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/BuiltinTypes.td"
 include "mlir/IR/OpBase.td"
