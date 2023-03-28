@@ -13,6 +13,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+#include <bit>
 #include <numeric>
 
 using namespace mlir;
@@ -44,25 +45,29 @@ static llvm::APInt uniteMasks(const llvm::APInt &lhs, const llvm::APInt &rhs)
     return lhs.zext(bitWidth) | rhs.zext(bitWidth);
 }
 
-/// Parses an optional poison mask as hex string.
+/// Parses an optional poison mask as hex literal.
 static OptionalParseResult
 parseOptionalPoisonMask(AsmParser &p, llvm::APInt &result)
 {
-    std::string hexString;
-    if (p.parseOptionalString(&hexString)) return std::nullopt;
-    if (StringRef(hexString).getAsInteger(16, result))
-        return p.emitError(p.getCurrentLocation(), "expected hex string");
+    std::string hexLiteral;
+    if (p.parseOptionalString(&hexLiteral)) return std::nullopt;
+    if (StringRef(hexLiteral).getAsInteger(16, result))
+        return p.emitError(p.getCurrentLocation(), "expected hex literal");
     return success();
 }
 
-/// Prints a poison mask as a hex string.
+/// Prints a poison mask as a hex literal.
 static void printPoisonMask(AsmPrinter &p, const llvm::APInt &value)
 {
     p << "\"";
+    // NOTE: The default APInt parser does not handle very long values, see
+    //       bit::BitSequence. We thus emit a long hex literal in canonical (BE)
+    //       order.
+    // TODO: Factor this out into its own FieldParser and helper.
     const auto activeWords =
         ArrayRef<std::uint64_t>(value.getRawData(), value.getActiveWords());
     SmallVector<std::uint8_t, sizeof(llvm::APInt::WordType)> buffer;
-    for (auto word : activeWords) {
+    for (auto word : llvm::reverse(activeWords)) {
         const auto begin = reinterpret_cast<const std::uint8_t*>(&word);
         const auto end = begin + sizeof(word);
 
@@ -127,7 +132,7 @@ static PoisonAttr getImpl(
 
     // Build a partially poisoned value attr.
     return getFn(
-        sourceDialect->getContext(),
+        sourceAttr.getContext(),
         sourceDialect,
         sourceAttr,
         poisonMask);
