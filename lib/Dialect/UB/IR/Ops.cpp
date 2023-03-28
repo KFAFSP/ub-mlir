@@ -26,8 +26,10 @@ using namespace mlir::ub;
 
 void PoisonOp::print(OpAsmPrinter &p)
 {
-    p << " ";
-    p.printStrippedAttrOrType(getValue());
+    if (!getValue().isPoison()) {
+        p << " ";
+        p.printStrippedAttrOrType(getValue());
+    }
     p << " : " << getType();
 }
 
