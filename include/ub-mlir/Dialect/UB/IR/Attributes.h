@@ -125,7 +125,7 @@ public:
     [[nodiscard]] static ValueOrPoisonAttr
     get(DialectRef sourceDialect,
         ValueOrPoisonAttr sourceAttr,
-        llvm::APInt poisonMask)
+        const llvm::APInt &poisonMask)
     {
         assert(sourceDialect);
         assert(sourceAttr);
@@ -142,7 +142,7 @@ public:
     [[nodiscard]] static ValueOrPoisonAttr
     get(StringRef sourceDialectName,
         ValueOrPoisonAttr sourceAttr,
-        llvm::APInt poisonMask)
+        const llvm::APInt &poisonMask)
     {
         assert(sourceAttr);
 
