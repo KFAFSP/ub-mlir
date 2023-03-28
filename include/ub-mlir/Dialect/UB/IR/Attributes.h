@@ -92,6 +92,8 @@ namespace mlir::ub {
 template<class ValueAttr>
 class ValueOrPoisonAttr : public Attribute {
 public:
+    using ValueType = decltype(std::declval<ValueAttr>().getType());
+
     using Attribute::Attribute;
 
     // @copydoc classof(Attribute)
@@ -114,9 +116,9 @@ public:
     /// Builds the fully-poisoned attribute for @p type .
     ///
     /// @pre    `type`
-    [[nodiscard]] static ValueOrPoisonAttr get(Type type)
+    [[nodiscard]] static ValueOrPoisonAttr get(ValueType type)
     {
-        return PoisonAttr::get(type).cast<ValueOrPoisonAttr>();
+        return PoisonAttr::get(type).template cast<ValueOrPoisonAttr>();
     }
     /// Builds a (partially) poisoned attribute for @p sourceAttr .
     ///
@@ -169,7 +171,10 @@ public:
     {}
 
     /// Gets the underlying type.
-    [[nodiscard]] Type getType() const { return cast<TypedAttr>().getType(); }
+    [[nodiscard]] ValueType getType() const
+    {
+        return cast<TypedAttr>().getType().template cast<ValueType>();
+    }
     /// Gets the underlying source attribute.
     [[nodiscard]] TypedOrTypeAttr getSourceAttr() const
     {
