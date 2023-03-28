@@ -134,9 +134,10 @@ public:
         //       ValueAttr directly. If we don't, the Unpoison canonicalization
         //       will get it though.
         return PoisonAttr::get(
-            sourceDialect,
-            sourceAttr.cast<TypedOrTypeAttr>(),
-            poisonMask);
+                   sourceDialect,
+                   sourceAttr.cast<TypedOrTypeAttr>(),
+                   poisonMask)
+            .template cast<ValueOrPoisonAttr>();
     }
     /// Builds a (partially) poisoned attribute for @p sourceAttr .
     ///
