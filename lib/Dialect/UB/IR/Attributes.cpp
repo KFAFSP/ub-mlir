@@ -97,7 +97,7 @@ static void printPoisonMask(AsmPrinter &p, const llvm::APInt &value)
 static PoisonAttr getImpl(
     auto getFn,
     DialectRef sourceDialect,
-    Attribute sourceAttr,
+    TypedOrTypeAttr sourceAttr,
     llvm::APInt poisonMask)
 {
     const auto makeFullPoison = [&]() {
@@ -130,6 +130,9 @@ static PoisonAttr getImpl(
         if (poisonMask == fullMask) return makeFullPoison();
     }
 
+    // NOTE: We can't simplify poisonMask.isZero(), because we must carry the
+    //       sourceDialect for potentially external constant materializers!
+
     // Build a partially poisoned value attr.
     return getFn(
         sourceAttr.getContext(),
@@ -140,7 +143,7 @@ static PoisonAttr getImpl(
 
 PoisonAttr PoisonAttr::get(
     DialectRef sourceDialect,
-    Attribute sourceAttr,
+    TypedOrTypeAttr sourceAttr,
     llvm::APInt poisonMask)
 {
     return ::getImpl(
@@ -155,7 +158,7 @@ PoisonAttr PoisonAttr::get(
 PoisonAttr PoisonAttr::getChecked(
     llvm::function_ref<InFlightDiagnostic()> emitError,
     DialectRef sourceDialect,
-    Attribute sourceAttr,
+    TypedOrTypeAttr sourceAttr,
     llvm::APInt poisonMask)
 {
     return ::getImpl(
@@ -214,7 +217,7 @@ Attribute PoisonAttr::parse(AsmParser &p, Type type)
 
     // Parse source attribute.
     if (p.parseLParen()) return {};
-    Attribute sourceAttr;
+    TypedOrTypeAttr sourceAttr;
     if (p.parseAttribute(sourceAttr, type)) return {};
     if (p.parseRParen()) return {};
 
@@ -234,7 +237,7 @@ Attribute PoisonAttr::parse(AsmParser &p, Type type)
 LogicalResult PoisonAttr::verify(
     function_ref<InFlightDiagnostic()> emitError,
     DialectRef sourceDialect,
-    Attribute sourceAttr,
+    TypedOrTypeAttr sourceAttr,
     llvm::APInt)
 {
     // Must have a source attribute.
@@ -249,10 +252,6 @@ LogicalResult PoisonAttr::verify(
     // Nesting is not allowed.
     if (sourceAttr.isa<PoisonAttr>())
         return emitError() << "PoisonAttr may not be nested";
-    // Source attribute must be typed.
-    if (!sourceAttr.isa<TypedAttr>())
-        return emitError() << "expected typed source attribute";
-
     // Otherwise, must have a source dialect.
     if (!sourceDialect) return emitError() << "expected source dialect";
 

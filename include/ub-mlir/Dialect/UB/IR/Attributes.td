@@ -13,9 +13,6 @@ include "ub-mlir/Dialect/UB/IR/Base.td"
 // PoisonAttr
 //===----------------------------------------------------------------------===//
 
-// #ub.poison<"DEADBEEF", arith(dense<3>)> : tensor<3xi64>
-// #ub.poison : tensor<3xi64>
-
 def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
     let mnemonic = "poison";
     let summary = "Poisoned value attribute";
@@ -49,7 +46,7 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
 
     let parameters = (ins
         "DialectRef":$sourceDialect,
-        "Attribute":$sourceAttr,
+        "TypedOrTypeAttr":$sourceAttr,
         "llvm::APInt":$poisonMask);
 
     let builders = [
@@ -63,11 +60,11 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
         }]>,
         AttrBuilderWithInferredContext<(ins
             "DialectRef":$sourceDialect,
-            "Attribute":$sourceAttr,
+            "TypedOrTypeAttr":$sourceAttr,
             "llvm::APInt":$poisonMask)>,
         AttrBuilderWithInferredContext<(ins
             "StringRef":$sourceDialectName,
-            "Attribute":$sourceAttr,
+            "TypedOrTypeAttr":$sourceAttr,
             "llvm::APInt":$poisonMask),
         [{
             using Base = PoisonAttr;
@@ -99,23 +96,14 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
                 index);
         }
         /// Determines whether the value is fully poisoned.
-        [[nodiscard]] bool isPoison() const
-        {
-            return !getSourceDialect();
-        }
+        [[nodiscard]] bool isPoison() const { return !getSourceDialect(); }
 
         //===--------------------------------------------------------------===//
         // TypedAttrInterface
         //===--------------------------------------------------------------===//
 
         /// Gets the underlying attribute value type.
-        [[nodiscard]] Type getType() const
-        {
-            if (const auto typeAttr = getSourceAttr().dyn_cast<TypeAttr>())
-                return typeAttr.getValue();
-
-            return getSourceAttr().cast<TypedAttr>().getType();
-        }
+        [[nodiscard]] Type getType() const { return getSourceAttr().getType(); }
     }];
 }
 
