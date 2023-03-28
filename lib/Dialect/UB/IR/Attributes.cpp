@@ -23,7 +23,7 @@ using namespace mlir::ub;
 ///
 /// For a scalar type, this is 1. For a container type, this is the product of
 /// its dimensions. For dynamic shapes, this is ShapedType::kDynamic;
-static std::int64_t getNumElements(Type type)
+[[nodiscard]] static std::int64_t getNumElements(Type type)
 {
     if (const auto shapedTy = type.dyn_cast<ShapedType>()) {
         if (!shapedTy.hasStaticShape()) return ShapedType::kDynamic;
@@ -39,7 +39,8 @@ static std::int64_t getNumElements(Type type)
 }
 
 /// Unites two bit masks regardless of their width.
-static llvm::APInt uniteMasks(const llvm::APInt &lhs, const llvm::APInt &rhs)
+[[nodiscard]] static llvm::APInt
+uniteMasks(const llvm::APInt &lhs, const llvm::APInt &rhs)
 {
     const auto bitWidth = std::max(lhs.getBitWidth(), rhs.getBitWidth());
     return lhs.zext(bitWidth) | rhs.zext(bitWidth);
