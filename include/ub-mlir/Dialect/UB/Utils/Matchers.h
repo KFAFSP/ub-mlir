@@ -58,6 +58,7 @@ struct MatcherBase {
     }
 };
 
+// clang-format off
 /// Concept for a matcher.
 template<class T>
 concept Matcher = std::is_base_of_v<MatcherBase, T>;
@@ -70,6 +71,7 @@ concept AttrConstraint = std::is_base_of_v<Attribute, T>;
 /// Concept for an MLIR Op constraint.
 template<class T>
 concept OpConstraint = std::is_base_of_v<OpState, T>;
+// clang-format on
 
 //===----------------------------------------------------------------------===//
 // OperandMatcher
@@ -525,14 +527,14 @@ using wrap_tuple_t = arg_tuple_t<Fn, arg_indices_t<Fn, I0>>;
 template<class Fn, std::size_t I0>
 using wrap_result_t = std::optional<wrap_tuple_t<Fn, I0>>;
 
-/// Creates a combined matcher for @p Prototype .
+/// Creates a pattern for @p Prototype .
 ///
 /// @pre    ArgumentIndex <= llvm::function_traits<Prototype>::num_args
 template<
     class Prototype,
     std::size_t ArgumentIndex = 0,
     std::size_t OperandIndex = 0>
-[[nodiscard]] auto combineMatchers()
+[[nodiscard]] auto makePattern()
 {
     using PrototypeTraits = llvm::function_traits<Prototype>;
     constexpr auto prototypeArity = PrototypeTraits::num_args;

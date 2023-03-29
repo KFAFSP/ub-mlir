@@ -111,25 +111,25 @@ using FoldCallback = function_ref<LogicalResult(
 {
     return callback;
 }
-/// Instanciates @p matcher as a FoldCallback.
-[[nodiscard]] FoldCallback makeFolder(auto &&matcher)
+/// Instanciates @p pattern as a FoldCallback.
+[[nodiscard]] FoldCallback makeFolder(auto &&pattern)
 {
-    using Prototype = std::decay_t<decltype(matcher)>;
+    using Prototype = std::decay_t<decltype(pattern)>;
     using PrototypeTraits = llvm::function_traits<Prototype>;
-    static_assert(PrototypeTraits::num_args != 0, "Trivially empty matcher");
+    static_assert(PrototypeTraits::num_args != 0, "Trivially empty pattern");
 
     // Make a lambda closure with IIFE contents.
-    return [matcher = std::forward<decltype(matcher)>(matcher)](
+    return [pattern = std::forward<decltype(pattern)>(pattern)](
                Operation* op,
                ArrayRef<Attribute> operands,
                SmallVectorImpl<OpFoldResult> &result) -> LogicalResult {
         if (const auto match =
-                detail::combineMatchers<Prototype>()(op, operands, result))
+                detail::makePattern<Prototype>()(op, operands, result))
             return detail::makeCompleter<Prototype>()(
                 op,
                 operands,
                 result,
-                std::apply(matcher, *match));
+                std::apply(pattern, *match));
         return failure();
     };
 }
