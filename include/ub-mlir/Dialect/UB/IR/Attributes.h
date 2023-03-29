@@ -92,8 +92,12 @@ namespace mlir::ub {
 //===----------------------------------------------------------------------===//
 
 /// Determines whether @p attr is guaranteed poison.
+///
+/// @pre    `attr`
 [[nodiscard]] inline bool isPoison(PoisonAttr attr) { return attr.isPoison(); }
 /// Determines whether @p attr is guaranteed poison.
+///
+/// @pre    `attr`
 [[nodiscard]] inline bool isPoison(Attribute attr)
 {
     if (const auto poisonAttr = attr.dyn_cast<PoisonAttr>())
@@ -101,14 +105,20 @@ namespace mlir::ub {
     return false;
 }
 /// Determines whether @p result is guaranteed poison.
+///
+/// @pre    `result`
 [[nodiscard]] bool isPoison(OpResult result);
 /// Determines whether @p value is guaranteed poison.
+///
+/// @pre    `value`
 [[nodiscard]] inline bool isPoison(Value value)
 {
     if (const auto result = value.dyn_cast<OpResult>()) return isPoison(result);
     return false;
 }
 /// Determines whether @p value is guaranteed poison.
+///
+/// @pre    `value`
 [[nodiscard]] inline bool isPoison(OpFoldResult value)
 {
     if (const auto attr = value.dyn_cast<Attribute>()) return isPoison(attr);
