@@ -188,6 +188,8 @@ struct OperandMatcher : MatcherBase {
 struct Any : OpFoldResult, OperandMatcher<Any> {
     using OperandMatcher::match;
 
+    /*implicit*/ Any() = default;
+    /*implicit*/ Any(std::nullptr_t) : Any() {}
     /*implicit*/ Any(OpFoldResult operand) : OpFoldResult(operand)
     {
         assert(operand);
@@ -223,10 +225,25 @@ struct Typed : OpFoldResult, OperandMatcher<Typed<TypeConstraint>> {
 
     [[nodiscard]] static std::optional<Typed> match(OpFoldResult operand)
     {
-        if (!llvm::isa<TypeConstraint>(getType(operand))) return match_fail;
+        if (!llvm::isa_and_present<TypeConstraint>(getType(operand)))
+            return match_fail;
         return Typed(operand);
     }
+    [[nodiscard]] static std::optional<Typed> match(Attribute attr)
+    {
+        const auto typed = llvm::dyn_cast<TypedAttr>(attr);
+        if (!typed || !llvm::isa<TypeConstraint>(typed.getType()))
+            return match_fail;
+        return Typed(attr);
+    }
+    [[nodiscard]] static std::optional<Typed> match(Value value)
+    {
+        if (!llvm::isa<TypeConstraint>(value.getType())) return match_fail;
+        return Typed(value);
+    }
 
+    /*implicit*/ Typed() = default;
+    /*implicit*/ Typed(std::nullptr_t) : Typed() {}
     explicit Typed(OpFoldResult operand) : OpFoldResult(operand)
     {
         assert(operand);
@@ -241,55 +258,53 @@ struct Typed : OpFoldResult, OperandMatcher<Typed<TypeConstraint>> {
 
 /// Matches a poisoned value as a PoisonAttr.
 template<TypeConstraint TypeConstraint = Type>
-struct Poisoned : PoisonAttr, OperandMatcher<Poisoned<TypeConstraint>> {
-    using OperandMatcher<Poisoned<TypeConstraint>>::match;
-    using Base = Typed<TypeConstraint>;
+struct Poisoned : PoisonAttr {
+    using PoisonAttr::PoisonAttr;
 
-    [[nodiscard]] static std::optional<Poisoned> match(Attribute attr)
+    [[nodiscard]] static bool classof(PoisonAttr attr)
     {
-        const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(attr);
-        if (!poisonAttr || !poisonAttr.isPoisoned()
-            || !llvm::isa<TypeConstraint>(poisonAttr.getType()))
-            return match_fail;
-        return Poisoned(poisonAttr);
+        return attr.isPoisoned() && llvm::isa<TypeConstraint>(attr.getType());
+    }
+    [[nodiscard]] static bool classof(Attribute attr)
+    {
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(attr))
+            return classof(poisonAttr);
+        return false;
     }
 
-    explicit Poisoned(PoisonAttr attr) : PoisonAttr(attr)
-    {
-        assert(attr);
-        assert(attr.isPoisoned());
-        assert(llvm::isa<TypeConstraint>(attr.getType()));
-    }
+    /*implicit*/ Poisoned(PoisonAttr) = delete;
 
     [[nodiscard]] TypeConstraint getType() const
     {
         return llvm::cast<TypeConstraint>(this->getType());
     }
 };
+using AnyPoisoned = Poisoned<Type>;
 
 /// Matches a fully poisoned value as a PoisonAttr.
 template<TypeConstraint TypeConstraint = Type>
-struct Poison : PoisonAttr, OperandMatcher<Poison<TypeConstraint>> {
-    using OperandMatcher<Poison<TypeConstraint>>::match;
+struct Poison : PoisonAttr {
+    using PoisonAttr::PoisonAttr;
 
-    [[nodiscard]] static std::optional<Poison> match(Attribute attr)
+    [[nodiscard]] static bool classof(PoisonAttr attr)
     {
-        const auto match = Poisoned<TypeConstraint>::match(attr);
-        if (!match || !match.unwrap().isPoison()) return match_fail;
-        return Poison(match.unwrap());
+        return attr.isPoison() && llvm::isa<TypeConstraint>(attr.getType());
+    }
+    [[nodiscard]] static bool classof(Attribute attr)
+    {
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(attr))
+            return classof(poisonAttr);
+        return false;
     }
 
-    explicit Poison(Poisoned<TypeConstraint> poisoned) : PoisonAttr(poisoned)
-    {
-        assert(poisoned);
-        assert(poisoned.isPoison());
-    }
+    /*implicit*/ Poison(PoisonAttr) = delete;
 
     [[nodiscard]] TypeConstraint getType() const
     {
         return llvm::cast<TypeConstraint>(this->getType());
     }
 };
+using AnyPoison = Poison<Type>;
 
 /// Matches a non-poisoned value as an OpFoldResult.
 template<TypeConstraint TypeConstraint = Type>
@@ -297,19 +312,34 @@ struct WellDefined : OpFoldResult, OperandMatcher<WellDefined<TypeConstraint>> {
     using OperandMatcher<WellDefined<TypeConstraint>>::match;
     using Base = Typed<TypeConstraint>;
 
-    [[nodiscard]] static std::optional<WellDefined> match(OpFoldResult operand)
+    [[nodiscard]] static std::optional<WellDefined> match(Attribute attr)
     {
-        assert(operand);
+        assert(attr);
 
-        if (Poisoned<TypeConstraint>::match(operand)) return match_fail;
-        return operand;
+        if (const auto poison = llvm::dyn_cast<PoisonAttr>(attr)) {
+            if (poison.isPoisoned()) return match_fail;
+        }
+        if (!Base::match(attr)) return match_fail;
+        return WellDefined(attr);
+    }
+    [[nodiscard]] static std::optional<WellDefined> match(Value value)
+    {
+        assert(value);
+
+        if (!Base::match(value)) return match_fail;
+        return WellDefined(value);
     }
 
+    /*implicit*/ WellDefined() = default;
+    /*implicit*/ WellDefined(std::nullptr_t) : WellDefined() {}
     explicit WellDefined(OpFoldResult operand) : OpFoldResult(operand)
     {
         assert(operand);
-        assert(Base::match(operand));
-        assert(!Poisoned<TypeConstraint>::match(operand));
+        assert(
+            !operand.is<Attribute>()
+            || (Base::match(operand.get<Attribute>())
+                && !AnyPoisoned::classof(operand.get<Attribute>())));
+        assert(!operand.is<Value>() || Base::match(operand.get<Value>()));
     }
 
     [[nodiscard]] TypeConstraint getType() const
@@ -317,6 +347,7 @@ struct WellDefined : OpFoldResult, OperandMatcher<WellDefined<TypeConstraint>> {
         return llvm::cast<TypeConstraint>(Base::getType(*this));
     }
 };
+using AnyWellDefined = WellDefined<Type>;
 
 //===----------------------------------------------------------------------===//
 // BuiltinMatcher
@@ -324,11 +355,7 @@ struct WellDefined : OpFoldResult, OperandMatcher<WellDefined<TypeConstraint>> {
 
 /// Trait class for implementing MatcherBase for @p T .
 template<class T>
-struct BuiltinMatcher {};
-
-/// Allows custom matchers to participate.
-template<Matcher T>
-struct BuiltinMatcher<T> : T {};
+struct BuiltinMatcher : T {};
 
 /// Allows access to the MLIRContext.
 template<>
@@ -498,7 +525,7 @@ struct BuiltinMatcher<TypeConstraint>
     {
         const auto match = Base::match(operand);
         if (!match) return match_fail;
-        return match.unwrap().getType();
+        return match->getType();
     }
 };
 
@@ -678,7 +705,7 @@ struct FoldCompleter<T> {
         assert(op->getNumResults() == 1);
 
         result.assign(1, OpFoldResult(t));
-        return success(result.back());
+        return success(!!result.back());
     }
 };
 // clang-format on

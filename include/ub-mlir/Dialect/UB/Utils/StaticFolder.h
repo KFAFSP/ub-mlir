@@ -25,10 +25,22 @@ template<std::size_t N>
 class StaticFolder : std::array<match::Folder, N> {
     using Base = std::array<match::Folder, N>;
 
+    template<std::size_t M>
+    [[nodiscard]] static match::Folder makeFolder(const StaticFolder<M> &folder)
+    {
+        return [&](auto &&... args) {
+            return folder(std::forward<decltype(args)>(args)...);
+        };
+    }
+    [[nodiscard]] static match::Folder makeFolder(auto &&pattern)
+    {
+        return match::makeFolder(std::forward<decltype(pattern)>(pattern));
+    }
+
 public:
     /// Initializes a StaticFolder from @p fns .
     /*implicit*/ StaticFolder(auto &&... fns)
-            : Base{match::makeFolder(std::forward<decltype(fns)>(fns))...}
+            : Base{makeFolder(std::forward<decltype(fns)>(fns))...}
     {}
 
     /*implicit*/ StaticFolder(StaticFolder &&) = delete;
@@ -78,8 +90,11 @@ private:
     {
         if constexpr (I == N)
             return failure();
-        else
-            return Base::operator[](I)(op, operands, result);
+        else {
+            if (succeeded(Base::operator[](I)(op, operands, result)))
+                return success();
+            return unroll<I + 1>(op, operands, result);
+        }
     }
 };
 
