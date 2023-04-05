@@ -13,6 +13,23 @@
 using namespace mlir;
 using namespace mlir::ub;
 
+static void printMaybeNever(OpAsmPrinter &p, Operation*, Type type)
+{
+    if (llvm::isa<NeverType>(type)) return;
+
+    p << " : " << type;
+}
+
+static ParseResult parseMaybeNever(OpAsmParser &p, Type &type)
+{
+    if (p.parseOptionalColon()) {
+        type = NeverType::get(p.getContext());
+        return success();
+    }
+
+    return p.parseType(type);
+}
+
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_OP_CLASSES
@@ -123,6 +140,15 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
 
     // Do not fold poisoned values.
     return {};
+}
+
+//===----------------------------------------------------------------------===//
+// NeverOp
+//===----------------------------------------------------------------------===//
+
+OpFoldResult NeverOp::fold(NeverOp::FoldAdaptor)
+{
+    return NeverAttr::get(getType());
 }
 
 //===----------------------------------------------------------------------===//

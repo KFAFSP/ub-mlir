@@ -10,6 +10,8 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
 
+#include "llvm/ADT/TypeSwitch.h"
+
 using namespace mlir;
 using namespace mlir::ub;
 
@@ -19,3 +21,15 @@ using namespace mlir::ub;
 #include "ub-mlir/Dialect/UB/IR/Types.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+
+//===----------------------------------------------------------------------===//
+// UBDialect
+//===----------------------------------------------------------------------===//
+
+void UBDialect::registerTypes()
+{
+    addTypes<
+#define GET_TYPEDEF_LIST
+#include "ub-mlir/Dialect/UB/IR/Types.cpp.inc"
+        >();
+}

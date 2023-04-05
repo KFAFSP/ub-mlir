@@ -43,13 +43,18 @@ def UB_PoisonOp
         Syntax:
 
         ```
-        poison-op ::= `poison` $value
+        poison-op ::= `poison` $value `:` type
         ```
 
         Examples:
 
         ```
+        // Fully poisoned value.
         %0 = ub.poison : tensor<3xi16>
+        // Partially poisoned value.
+        %1 = ub.poison #ub.poison<"BEEF", arith(dense<2>)> : tensor<32xi64>
+        // Well-defined value (will be canonicalized to arith.constant).
+        %1 = ub.poison #ub.poison<arith(dense<2>)> : tensor<32xi64>
         ```
     }];
 
@@ -95,7 +100,7 @@ def UB_FreezeOp
         Syntax:
 
         ```
-        freeze-op ::= `freeze` $operand `:` type
+        freeze-op ::= `freeze` $operand attr-dict `:` type
         ```
 
         Examples:
@@ -121,6 +126,51 @@ def UB_FreezeOp
         void getAsmResultNames(function_ref<void(Value, StringRef)> setNameFn)
         {
             setNameFn(getResult(), "frozen");
+        }
+    }];
+}
+
+//===----------------------------------------------------------------------===//
+// NeverOp
+//===----------------------------------------------------------------------===//
+
+def UB_NeverOp : UB_ConstantOpBase<"never", [OpAsmOpInterface]> {
+    let summary = "Unreachable value constant operation";
+    let description = [{
+        The `never` operation materializes an unreachable value of any type.
+        Values produced in this way will never occur during any program
+        execution, and are therefore indicators of trivially dead code paths.
+
+        If no type is specified, the result type is `!ub.never`.
+
+        Syntax:
+
+        ```
+        never-op ::= `never` attr-dict (`:` type)?
+        ```
+
+        Examples:
+
+        ```
+        %0 = ub.never
+        %1 = ub.never : i64
+        ```
+    }];
+
+    let arguments = (ins);
+    let results = (outs AnyType:$result);
+
+    let assemblyFormat = "attr-dict custom<MaybeNever>(type($result))";
+
+    code extraClassDeclaration = [{
+    public:
+        //===--------------------------------------------------------------===//
+        // OpAsmOpInterface
+        //===--------------------------------------------------------------===//
+
+        void getAsmResultNames(function_ref<void(Value, StringRef)> setNameFn)
+        {
+            setNameFn(getResult(), "never");
         }
     }];
 }

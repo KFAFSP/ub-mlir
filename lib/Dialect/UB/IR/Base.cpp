@@ -5,6 +5,7 @@
 
 #include "ub-mlir/Dialect/UB/IR/Base.h"
 
+#include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "ub-mlir/Dialect/UB/IR/UB.h"
 
@@ -59,10 +60,39 @@ Operation* UBDialect::materializeConstant(
         ->materializeConstant(builder, poisonAttr, type, location);
 }
 
+LogicalResult
+UBDialect::verifyOperationAttribute(Operation* op, NamedAttribute attr)
+{
+    if (attr.getName() == kUnreachableAttrName) {
+        if (op->hasTrait<OpTrait::IsTerminator>())
+            return op->emitError() << "attribute '" << kUnreachableAttrName
+                                   << "' is only applicable to terminators";
+
+        // NOTE: An operation that does not implement RegionKindInterface is
+        //       assumed to have only SSACFG regions per MLIR core!
+        if (auto regionKindIface =
+                llvm::dyn_cast_if_present<RegionKindInterface>(
+                    op->getParentOp())) {
+            const auto regionIdx = op->getParentRegion()->getRegionNumber();
+            if (regionKindIface.getRegionKind(regionIdx) != RegionKind::SSACFG)
+                return op->emitError()
+                       << "attribute '" << kUnreachableAttrName
+                       << "' is only applicable in SSACFG regions";
+        }
+
+        return success();
+    }
+
+    return op->emitError()
+           << "attribute '" << attr.getName()
+           << "' not supported as an op attribute by the ub dialect";
+}
+
 void UBDialect::initialize()
 {
     registerAttributes();
     registerOps();
+    registerTypes();
 
     // Implement the inliner interface.
     addInterfaces<UBInlinerInterface>();

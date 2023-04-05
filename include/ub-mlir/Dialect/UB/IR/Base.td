@@ -22,13 +22,16 @@ def UB_Dialect : Dialect {
     }];
 
     let hasConstantMaterializer = 1;
+    let hasOperationAttrVerify = 1;
     let useDefaultAttributePrinterParser = 1;
+    let useDefaultTypePrinterParser = 1;
     let useFoldAPI = kEmitFoldAdaptorFolder;
 
     code extraClassDeclaration = [{
     private:
         void registerAttributes();
         void registerOps();
+        void registerTypes();
     }];
 }
 
@@ -38,5 +41,8 @@ class UB_Attr<string name, list<Trait> traits = []>
 // Template for ops.
 class UB_Op<string mnemonic, list<Trait> traits = []>
         : Op<UB_Dialect, mnemonic, traits>;
+// Template for types.
+class UB_Type<string name, list<Trait> traits = []>
+        : TypeDef<UB_Dialect, name, traits>;
 
 #endif

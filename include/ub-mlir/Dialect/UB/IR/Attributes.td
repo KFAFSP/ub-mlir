@@ -17,14 +17,14 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
     let mnemonic = "poison";
     let summary = "Poisoned value attribute";
     let description = [{
-        The `poison` attribute represents a compile-time constant value that is
-        the result of undefined behavior. It can also represent a constant
-        container value which is only partially poisoned.
+        The `poison` attribute is a compile-time proposition that the result of
+        a computation invokes undefined behavior. It may also carry an
+        underlying container constant value that is only partially poisoned.
 
         Syntax:
 
         ```
-        poison-attr ::= (`<` (poison-spec `,`)? source-attr `>` `:`)? type
+        poison-attr ::= (`<` (poison-spec `,`)? source-attr `>`)? `:` type
         poison-spec ::= `"` [0-9a-fA-F]+ `"`
         source-attr ::= dialect-name `(` attr-value `)`
         ```
@@ -105,6 +105,45 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
         /// Gets the underlying attribute value type.
         [[nodiscard]] Type getType() const { return getSourceAttr().getType(); }
     }];
+}
+
+//===----------------------------------------------------------------------===//
+// NeverAttr
+//===----------------------------------------------------------------------===//
+
+def UB_NeverAttr : UB_Attr<"Never", [TypedAttrInterface]> {
+    let mnemonic = "never";
+    let summary = "Unreachable value attribute";
+    let description = [{
+        The `never` attribute represents a compile-time proposition that a value
+        will never be computed, i.e., is the result of a dead code path.
+
+        Syntax:
+
+        ```
+        never-attr ::= `:` type
+        ```
+
+        Example:
+
+        ```
+        #ub.never : i16
+        ```
+    }];
+
+    let parameters = (ins AttributeSelfTypeParameter<"">:$type);
+
+    let builders = [
+        AttrBuilder<(ins),
+        [{
+            return $_get($_ctxt, NeverType::get($_ctxt));
+        }]>,
+        AttrBuilderWithInferredContext<(ins "Type":$type),
+        [{
+            return $_get(type.getContext(), type);
+        }]>];
+
+    let assemblyFormat = "";
 }
 
 #endif
