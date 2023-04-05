@@ -38,52 +38,6 @@ using namespace mlir::ub;
     return 1;
 }
 
-/// Unites two bit masks regardless of their width.
-[[nodiscard]] static llvm::APInt
-uniteMasks(const llvm::APInt &lhs, const llvm::APInt &rhs)
-{
-    const auto bitWidth = std::max(lhs.getBitWidth(), rhs.getBitWidth());
-    return lhs.zext(bitWidth) | rhs.zext(bitWidth);
-}
-
-/// Parses an optional poison mask as hex literal.
-static OptionalParseResult
-parseOptionalPoisonMask(AsmParser &p, llvm::APInt &result)
-{
-    std::string hexLiteral;
-    if (p.parseOptionalString(&hexLiteral)) return std::nullopt;
-    if (StringRef(hexLiteral).getAsInteger(16, result))
-        return p.emitError(p.getCurrentLocation(), "expected hex literal");
-    return success();
-}
-
-/// Prints a poison mask as a hex literal.
-static void printPoisonMask(AsmPrinter &p, const llvm::APInt &value)
-{
-    p << "\"";
-    // NOTE: The default APInt parser does not handle very long values, see
-    //       bit::BitSequence. We thus emit a long hex literal in canonical (BE)
-    //       order.
-    // TODO: Factor this out into its own FieldParser and helper.
-    const auto activeWords =
-        ArrayRef<std::uint64_t>(value.getRawData(), value.getActiveWords());
-    SmallVector<std::uint8_t, sizeof(llvm::APInt::WordType)> buffer;
-    for (auto word : llvm::reverse(activeWords)) {
-        const auto begin = reinterpret_cast<const std::uint8_t*>(&word);
-        const auto end = begin + sizeof(word);
-
-        if (std::endian::native == std::endian::big) {
-            buffer.assign(begin, end);
-        } else {
-            buffer.assign(
-                std::make_reverse_iterator(end),
-                std::make_reverse_iterator(begin));
-        }
-        p << llvm::toHex(buffer);
-    }
-    p << "\"";
-}
-
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_ATTRDEF_CLASSES
@@ -99,14 +53,14 @@ static PoisonAttr getImpl(
     auto getFn,
     DialectRef sourceDialect,
     TypedOrTypeAttr sourceAttr,
-    llvm::APInt poisonMask)
+    PoisonMask poisonMask)
 {
     const auto makeFullPoison = [&]() {
         return getFn(
             sourceAttr.getContext(),
             nullptr,
             sourceAttr,
-            llvm::APInt(0U, 0UL));
+            PoisonMask{});
     };
 
     assert(sourceAttr);
@@ -119,16 +73,14 @@ static PoisonAttr getImpl(
     // Flatten nested hierarchies (technically, only one level may ever occur).
     while (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(sourceAttr)) {
         sourceAttr = poisonAttr.getSourceAttr();
-        poisonMask = uniteMasks(poisonMask, poisonAttr.getPoisonMask());
+        poisonMask.unite(poisonAttr.getPoisonMask());
     }
 
     // Simplify poison masks.
     const auto sourceTy = llvm::cast<TypedAttr>(sourceAttr).getType();
     const auto numElements = getNumElements(sourceTy);
     if (numElements != ShapedType::kDynamic) {
-        poisonMask = poisonMask.zextOrTrunc(numElements);
-        const auto fullMask = llvm::APInt::getAllOnes(numElements);
-        if (poisonMask == fullMask) return makeFullPoison();
+        if (poisonMask.isPoison(numElements)) return makeFullPoison();
     }
 
     // NOTE: We can't simplify poisonMask.isZero(), because we must carry the
@@ -145,7 +97,7 @@ static PoisonAttr getImpl(
 PoisonAttr PoisonAttr::get(
     DialectRef sourceDialect,
     TypedOrTypeAttr sourceAttr,
-    llvm::APInt poisonMask)
+    const PoisonMask &poisonMask)
 {
     return ::getImpl(
         [&](auto &&... args) {
@@ -160,7 +112,7 @@ PoisonAttr PoisonAttr::getChecked(
     llvm::function_ref<InFlightDiagnostic()> emitError,
     DialectRef sourceDialect,
     TypedOrTypeAttr sourceAttr,
-    llvm::APInt poisonMask)
+    const PoisonMask &poisonMask)
 {
     return ::getImpl(
         [&](auto &&... args) {
@@ -180,10 +132,7 @@ void PoisonAttr::print(AsmPrinter &p) const
     p << "<";
 
     // Print poison mask.
-    if (!getPoisonMask().isZero()) {
-        printPoisonMask(p, getPoisonMask());
-        p << ", ";
-    }
+    if (!getPoisonMask().isEmpty()) p << getPoisonMask() << ", ";
 
     // Print source dialect name;
     p << getSourceDialect()->getNamespace();
@@ -205,12 +154,9 @@ Attribute PoisonAttr::parse(AsmParser &p, Type type)
     }
 
     // Parse poison mask.
-    llvm::APInt poisonMask(0U, 0UL);
-    const auto optMask = parseOptionalPoisonMask(p, poisonMask);
-    if (optMask.has_value()) {
-        if (optMask.value()) return {};
-        if (p.parseComma()) return {};
-    }
+    const auto optMask = FieldParser<std::optional<PoisonMask>>::parse(p);
+    if (failed(optMask)) return {};
+    if (optMask->has_value() && p.parseComma()) return {};
 
     // Parse source dialect name.
     StringRef sourceDialectName;
@@ -232,14 +178,14 @@ Attribute PoisonAttr::parse(AsmParser &p, Type type)
         [&]() { return p.emitError(p.getNameLoc()); },
         sourceDialectName,
         sourceAttr,
-        poisonMask);
+        optMask->value_or(PoisonMask{}));
 }
 
 LogicalResult PoisonAttr::verify(
     function_ref<InFlightDiagnostic()> emitError,
     DialectRef sourceDialect,
     TypedOrTypeAttr sourceAttr,
-    llvm::APInt)
+    PoisonMask)
 {
     // Must have a source attribute.
     if (!sourceAttr) return emitError() << "expected source attribute";
@@ -257,19 +203,6 @@ LogicalResult PoisonAttr::verify(
     if (!sourceDialect) return emitError() << "expected source dialect";
 
     return success();
-}
-
-//===----------------------------------------------------------------------===//
-// Helper functions
-//===----------------------------------------------------------------------===//
-
-bool mlir::ub::isPoison(OpResult result)
-{
-    const auto def = result.getOwner();
-    if (!def->hasTrait<OpTrait::ConstantLike>()) return false;
-    SmallVector<OpFoldResult> results;
-    if (failed(def->fold({}, results))) return false;
-    return isPoison(results[result.getResultNumber()]);
 }
 
 //===----------------------------------------------------------------------===//

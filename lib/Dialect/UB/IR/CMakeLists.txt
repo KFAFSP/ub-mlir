@@ -3,6 +3,7 @@ add_mlir_dialect_library(UBDialect
         Base.cpp
         Ops.cpp
         Types.cpp
+        UB.cpp
 
     DEPENDS
         UBIncGen
@@ -11,4 +12,5 @@ add_mlir_dialect_library(UBDialect
         MLIRIR
         MLIRParser
         MLIRSideEffectInterfaces
+        UBAnalysis
 )

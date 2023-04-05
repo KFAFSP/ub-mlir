@@ -44,10 +44,12 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
         ```
     }];
 
+    // NOTE: The AttributeSelfTypeParameter is deliberately unused since that is
+    //       stored within $sourceAttr.
     let parameters = (ins
         "DialectRef":$sourceDialect,
         "TypedOrTypeAttr":$sourceAttr,
-        "llvm::APInt":$poisonMask);
+        "PoisonMask":$poisonMask);
 
     let builders = [
         AttrBuilderWithInferredContext<(ins "Type":$type),
@@ -56,16 +58,16 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
                 type.getContext(),
                 nullptr,
                 TypeAttr::get(type),
-                llvm::APInt(0U, 0UL));
+                PoisonMask{});
         }]>,
         AttrBuilderWithInferredContext<(ins
             "DialectRef":$sourceDialect,
             "TypedOrTypeAttr":$sourceAttr,
-            "llvm::APInt":$poisonMask)>,
+            CArg<"const PoisonMask &", "{}">:$poisonMask)>,
         AttrBuilderWithInferredContext<(ins
             "StringRef":$sourceDialectName,
             "TypedOrTypeAttr":$sourceAttr,
-            "llvm::APInt":$poisonMask),
+            CArg<"const PoisonMask &", "{}">:$poisonMask),
         [{
             using Base = PoisonAttr;
             return $_get(
@@ -75,6 +77,8 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
         }]>];
     let skipDefaultBuilders = 1;
 
+    // NOTE: There seems to be no way to use assemblyFormat to implement the
+    //       desired format (stripped value attr).
     let hasCustomAssemblyFormat = 1;
 
     let genVerifyDecl = 1;
@@ -84,16 +88,12 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
         /// Determines whether the value is (partially) poisoned.
         [[nodiscard]] bool isPoisoned() const
         {
-            return !getSourceDialect() || !getPoisonMask().isZero();
+            return !getSourceDialect() || getPoisonMask().isPoisoned();
         }
         /// Determines whether the value at @p index is poisoned.
         [[nodiscard]] bool isPoisoned(unsigned index) const
         {
-            if (!getSourceDialect()) return true;
-            if (index >= getPoisonMask().getBitWidth()) return false;
-            return getPoisonMask().tcExtractBit(
-                getPoisonMask().getRawData(),
-                index);
+            return !getSourceDialect() || getPoisonMask().isPoisoned(index);
         }
         /// Determines whether the value is fully poisoned.
         [[nodiscard]] bool isPoison() const { return !getSourceDialect(); }

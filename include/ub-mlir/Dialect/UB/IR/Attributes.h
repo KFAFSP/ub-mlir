@@ -8,6 +8,7 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "ub-mlir/Dialect/UB/Analysis/PoisonMask.h"
 #include "ub-mlir/Dialect/UB/IR/Base.h"
 
 #include "llvm/ADT/APInt.h"
@@ -88,45 +89,6 @@ public:
 namespace mlir::ub {
 
 //===----------------------------------------------------------------------===//
-// Helper functions
-//===----------------------------------------------------------------------===//
-
-/// Determines whether @p attr is guaranteed poison.
-///
-/// @pre    `attr`
-[[nodiscard]] inline bool isPoison(PoisonAttr attr) { return attr.isPoison(); }
-/// Determines whether @p attr is guaranteed poison.
-///
-/// @pre    `attr`
-[[nodiscard]] inline bool isPoison(Attribute attr)
-{
-    if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(attr))
-        return isPoison(poisonAttr);
-    return false;
-}
-/// Determines whether @p result is guaranteed poison.
-///
-/// @pre    `result`
-[[nodiscard]] bool isPoison(OpResult result);
-/// Determines whether @p value is guaranteed poison.
-///
-/// @pre    `value`
-[[nodiscard]] inline bool isPoison(Value value)
-{
-    if (const auto result = llvm::dyn_cast<OpResult>(value))
-        return isPoison(result);
-    return false;
-}
-/// Determines whether @p value is guaranteed poison.
-///
-/// @pre    `value`
-[[nodiscard]] inline bool isPoison(OpFoldResult value)
-{
-    if (const auto attr = value.dyn_cast<Attribute>()) return isPoison(attr);
-    return false;
-}
-
-//===----------------------------------------------------------------------===//
 // ValueOrPoisonAttr
 //===----------------------------------------------------------------------===//
 
@@ -171,7 +133,7 @@ public:
     [[nodiscard]] static ValueOrPoisonAttr
     get(DialectRef sourceDialect,
         ValueOrPoisonAttr sourceAttr,
-        const llvm::APInt &poisonMask)
+        const PoisonMask &poisonMask)
     {
         assert(sourceDialect);
         assert(sourceAttr);
@@ -191,7 +153,7 @@ public:
     [[nodiscard]] static ValueOrPoisonAttr
     get(StringRef sourceDialectName,
         ValueOrPoisonAttr sourceAttr,
-        const llvm::APInt &poisonMask)
+        const PoisonMask &poisonMask)
     {
         assert(sourceAttr);
 
@@ -233,12 +195,12 @@ public:
     }
 
     /// Gets the poisoned element mask.
-    [[nodiscard]] llvm::APInt getPoisonMask() const
+    [[nodiscard]] PoisonMask getPoisonMask() const
     {
         if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(*this))
             return poisonAttr.getPoisonMask();
 
-        return llvm::APInt(0U, 0UL);
+        return {};
     }
     /// Determines whether this value is (partially) poisoned.
     [[nodiscard]] bool isPoisoned() const
