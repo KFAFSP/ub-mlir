@@ -34,7 +34,7 @@ public:
     /// Determines whether @p attr is a ValueOrTypeAttr.
     [[nodiscard]] static bool classof(Attribute attr)
     {
-        return attr.isa<TypedAttr, TypeAttr>();
+        return llvm::isa<TypedAttr, TypeAttr>(attr);
     }
 
     /// Builds the canonical TypedOrTypeAttr for @p attr .
@@ -57,22 +57,22 @@ public:
     ///
     /// @pre    `attr`
     /*implicit*/ TypedOrTypeAttr(TypedAttr attr)
-            : Attribute(attr.cast<Attribute>().getImpl())
+            : Attribute(llvm::cast<Attribute>(attr).getImpl())
     {}
     /// Initializes a TypedOrTypeAttr from @p attr .
     ///
     /// @pre    `attr`
     /*implicit*/ TypedOrTypeAttr(TypeAttr attr)
-            : Attribute(attr.cast<Attribute>().getImpl())
+            : Attribute(llvm::cast<Attribute>(attr).getImpl())
     {}
 
     /// Gets the underlying type.
     [[nodiscard]] Type getType() const
     {
-        if (const auto typeAttr = dyn_cast<TypeAttr>())
+        if (const auto typeAttr = llvm::dyn_cast<TypeAttr>(*this))
             return typeAttr.getValue();
 
-        return cast<TypedAttr>().getType();
+        return llvm::cast<TypedAttr>(*this).getType();
     }
 };
 
@@ -100,7 +100,7 @@ namespace mlir::ub {
 /// @pre    `attr`
 [[nodiscard]] inline bool isPoison(Attribute attr)
 {
-    if (const auto poisonAttr = attr.dyn_cast<PoisonAttr>())
+    if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(attr))
         return isPoison(poisonAttr);
     return false;
 }
@@ -113,7 +113,8 @@ namespace mlir::ub {
 /// @pre    `value`
 [[nodiscard]] inline bool isPoison(Value value)
 {
-    if (const auto result = value.dyn_cast<OpResult>()) return isPoison(result);
+    if (const auto result = llvm::dyn_cast<OpResult>(value))
+        return isPoison(result);
     return false;
 }
 /// Determines whether @p value is guaranteed poison.
@@ -145,13 +146,13 @@ public:
     [[nodiscard]] static bool classof(PoisonAttr poisonAttr)
     {
         return poisonAttr.isPoison()
-               || poisonAttr.getSourceAttr().isa<ValueAttr>();
+               || llvm::isa<ValueAttr>(poisonAttr.getSourceAttr());
     }
     /// Determines whether @p attr is a ValueOrPoisonAttr.
     [[nodiscard]] static bool classof(Attribute attr)
     {
-        if (attr.isa<ValueAttr>()) return true;
-        if (const auto poisonAttr = attr.dyn_cast<PoisonAttr>())
+        if (llvm::isa<ValueAttr>(attr)) return true;
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(attr))
             return classof(poisonAttr);
         return false;
     }
@@ -161,7 +162,7 @@ public:
     /// @pre    `type`
     [[nodiscard]] static ValueOrPoisonAttr get(ValueType type)
     {
-        return PoisonAttr::get(type).template cast<ValueOrPoisonAttr>();
+        return llvm::cast<ValueOrPoisonAttr>(PoisonAttr::get(type));
     }
     /// Builds a (partially) poisoned attribute for @p sourceAttr .
     ///
@@ -178,11 +179,10 @@ public:
         // NOTE: If the union of poison masks is 0, we could return the
         //       ValueAttr directly. If we don't, the Unpoison canonicalization
         //       will get it though.
-        return PoisonAttr::get(
-                   sourceDialect,
-                   sourceAttr.cast<TypedOrTypeAttr>(),
-                   poisonMask)
-            .template cast<ValueOrPoisonAttr>();
+        return llvm::cast<ValueOrPoisonAttr>(PoisonAttr::get(
+            sourceDialect,
+            llvm::cast<TypedOrTypeAttr>(sourceAttr),
+            poisonMask));
     }
     /// Builds a (partially) poisoned attribute for @p sourceAttr .
     ///
@@ -210,32 +210,32 @@ public:
     ///
     /// @pre    `attr`
     /*implicit*/ ValueOrPoisonAttr(ValueAttr attr)
-            : Attribute(attr.template cast<Attribute>().getImpl())
+            : Attribute(llvm::cast<Attribute>(attr).getImpl())
     {}
 
     /// Gets the underlying type.
     [[nodiscard]] ValueType getType() const
     {
-        return cast<TypedAttr>().getType().template cast<ValueType>();
+        return llvm::cast<ValueType>(llvm::cast<TypedAttr>(*this).getType());
     }
     /// Gets the underlying source attribute.
     [[nodiscard]] TypedOrTypeAttr getSourceAttr() const
     {
-        if (const auto poisonAttr = dyn_cast<PoisonAttr>())
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(*this))
             return poisonAttr.getSourceAttr();
 
-        return cast<TypedAttr>();
+        return llvm::cast<TypedAttr>(*this);
     }
     /// Gets the underlying value attribute, if any.
     [[nodiscard]] ValueAttr getValueAttr() const
     {
-        return getSourceAttr().template dyn_cast<ValueAttr>();
+        return llvm::dyn_cast<ValueAttr>(getSourceAttr());
     }
 
     /// Gets the poisoned element mask.
     [[nodiscard]] llvm::APInt getPoisonMask() const
     {
-        if (const auto poisonAttr = dyn_cast<PoisonAttr>())
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(*this))
             return poisonAttr.getPoisonMask();
 
         return llvm::APInt(0U, 0UL);
@@ -243,7 +243,7 @@ public:
     /// Determines whether this value is (partially) poisoned.
     [[nodiscard]] bool isPoisoned() const
     {
-        if (const auto poisonAttr = dyn_cast<PoisonAttr>())
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(*this))
             return poisonAttr.isPoisoned();
 
         return false;
@@ -251,7 +251,7 @@ public:
     /// Determines whether the element at @p index is poisoned.
     [[nodiscard]] bool isPoisoned(unsigned index) const
     {
-        if (const auto poisonAttr = dyn_cast<PoisonAttr>())
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(*this))
             return poisonAttr.isPoisoned(index);
 
         return false;
@@ -259,7 +259,7 @@ public:
     /// Determines whether this value is fully poisoned.
     [[nodiscard]] bool isPoison() const
     {
-        if (const auto poisonAttr = dyn_cast<PoisonAttr>())
+        if (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(*this))
             return poisonAttr.isPoison();
 
         return false;

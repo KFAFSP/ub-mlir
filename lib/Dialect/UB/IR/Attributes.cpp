@@ -25,7 +25,7 @@ using namespace mlir::ub;
 /// its dimensions. For dynamic shapes, this is ShapedType::kDynamic;
 [[nodiscard]] static std::int64_t getNumElements(Type type)
 {
-    if (const auto shapedTy = type.dyn_cast<ShapedType>()) {
+    if (const auto shapedTy = llvm::dyn_cast<ShapedType>(type)) {
         if (!shapedTy.hasStaticShape()) return ShapedType::kDynamic;
 
         return std::accumulate(
@@ -111,19 +111,19 @@ static PoisonAttr getImpl(
 
     assert(sourceAttr);
 
-    if (sourceAttr.isa<TypeAttr>()) {
+    if (llvm::isa<TypeAttr>(sourceAttr)) {
         // Simplify to full poison attribute.
         return makeFullPoison();
     }
 
     // Flatten nested hierarchies (technically, only one level may ever occur).
-    while (const auto poisonAttr = sourceAttr.dyn_cast<PoisonAttr>()) {
+    while (const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(sourceAttr)) {
         sourceAttr = poisonAttr.getSourceAttr();
         poisonMask = uniteMasks(poisonMask, poisonAttr.getPoisonMask());
     }
 
     // Simplify poison masks.
-    const auto sourceTy = sourceAttr.cast<TypedAttr>().getType();
+    const auto sourceTy = llvm::cast<TypedAttr>(sourceAttr).getType();
     const auto numElements = getNumElements(sourceTy);
     if (numElements != ShapedType::kDynamic) {
         poisonMask = poisonMask.zextOrTrunc(numElements);
@@ -245,13 +245,13 @@ LogicalResult PoisonAttr::verify(
     if (!sourceAttr) return emitError() << "expected source attribute";
 
     // Full poison is indicated by a TypeAttr.
-    if (sourceAttr.isa<TypeAttr>()) {
+    if (llvm::isa<TypeAttr>(sourceAttr)) {
         if (sourceDialect) return emitError() << "no source dialect allowed";
         return success();
     }
 
     // Nesting is not allowed.
-    if (sourceAttr.isa<PoisonAttr>())
+    if (llvm::isa<PoisonAttr>(sourceAttr))
         return emitError() << "PoisonAttr may not be nested";
     // Otherwise, must have a source dialect.
     if (!sourceDialect) return emitError() << "expected source dialect";

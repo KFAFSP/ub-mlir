@@ -41,7 +41,7 @@ Operation* UBDialect::materializeConstant(
     Location location)
 {
     // Only handles the PoisonAttr.
-    const auto poisonAttr = value.dyn_cast<PoisonAttr>();
+    const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(value);
     if (!poisonAttr || poisonAttr.getType() != type) return nullptr;
 
     // If the value is not poisoned, materialize natively.

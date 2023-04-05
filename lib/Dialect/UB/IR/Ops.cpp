@@ -118,7 +118,7 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
     if (!adaptor.getOperand()) return {};
 
     // Fold non-poisoned values, but without materializing the constant!
-    const auto poisonAttr = adaptor.getOperand().dyn_cast<PoisonAttr>();
+    const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(adaptor.getOperand());
     if (!poisonAttr) return getOperand();
 
     // Do not fold poisoned values.
