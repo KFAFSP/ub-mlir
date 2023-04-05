@@ -9,6 +9,8 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "ub-mlir/Dialect/UB/IR/UB.h"
 
+#include "llvm/ADT/TypeSwitch.h"
+
 using namespace mlir;
 using namespace mlir::ub;
 
@@ -41,30 +43,33 @@ Operation* UBDialect::materializeConstant(
     Type type,
     Location location)
 {
-    // Only handles the PoisonAttr.
-    const auto poisonAttr = llvm::dyn_cast<PoisonAttr>(value);
-    if (!poisonAttr || poisonAttr.getType() != type) return nullptr;
+    return llvm::TypeSwitch<Attribute, Operation*>(value)
+        .Case([&](PoisonAttr attr) -> Operation* {
+            if (attr.getType() != type) return nullptr;
 
-    // If the value is not poisoned, materialize natively.
-    if (!poisonAttr.isPoisoned())
-        return poisonAttr.getSourceDialect()->materializeConstant(
-            builder,
-            poisonAttr.getSourceAttr(),
-            type,
-            location);
+            // If the value is not poisoned, materialize natively.
+            if (!attr.isPoisoned())
+                return attr.getSourceDialect()->materializeConstant(
+                    builder,
+                    attr.getSourceAttr(),
+                    type,
+                    location);
 
-    // Otherwise, if the source dialect supports it, it may re-evaluate the
-    // poisoned representation. If it fails, the current producing op will
-    // remain as it is, which is fine.
-    return poisonAttr.getSourceDialect()
-        ->materializeConstant(builder, poisonAttr, type, location);
+            // Otherwise, if the source dialect supports it, it may re-evaluate
+            // the poisoned representation. If it fails, the current producing
+            // op will remain as it is, which is fine.
+            return attr.getSourceDialect()
+                ->materializeConstant(builder, attr, type, location);
+        })
+        .Case([&](NeverAttr) { return builder.create<NeverOp>(location); })
+        .Default(static_cast<Operation*>(nullptr));
 }
 
 LogicalResult
 UBDialect::verifyOperationAttribute(Operation* op, NamedAttribute attr)
 {
     if (attr.getName() == kUnreachableAttrName) {
-        if (op->hasTrait<OpTrait::IsTerminator>())
+        if (!op->hasTrait<OpTrait::IsTerminator>())
             return op->emitError() << "attribute '" << kUnreachableAttrName
                                    << "' is only applicable to terminators";
 

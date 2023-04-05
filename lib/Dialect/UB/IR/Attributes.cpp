@@ -22,9 +22,12 @@ using namespace mlir::ub;
 /// Gets the number of elements contained in @p type .
 ///
 /// For a scalar type, this is 1. For a container type, this is the product of
-/// its dimensions. For dynamic shapes, this is ShapedType::kDynamic;
+/// its dimensions. For dynamic shapes, this is ShapedType::kDynamic.
 [[nodiscard]] static std::int64_t getNumElements(Type type)
 {
+    // TODO: Support for more aggregate types based on an Attribute interface?
+    //       E.g., it is unclear whether tuples are stored nested or flattened.
+
     if (const auto shapedTy = llvm::dyn_cast<ShapedType>(type)) {
         if (!shapedTy.hasStaticShape()) return ShapedType::kDynamic;
 
@@ -76,14 +79,14 @@ static PoisonAttr getImpl(
         poisonMask.unite(poisonAttr.getPoisonMask());
     }
 
-    // Simplify poison masks.
+    // Simplify poison mask if number of elements in known.
     const auto sourceTy = llvm::cast<TypedAttr>(sourceAttr).getType();
     const auto numElements = getNumElements(sourceTy);
     if (numElements != ShapedType::kDynamic) {
         if (poisonMask.isPoison(numElements)) return makeFullPoison();
     }
 
-    // NOTE: We can't simplify poisonMask.isZero(), because we must carry the
+    // NOTE: We can't simplify poisonMask.isEmpty(), because we must carry the
     //       sourceDialect for potentially external constant materializers!
 
     // Build a partially poisoned value attr.
@@ -187,21 +190,14 @@ LogicalResult PoisonAttr::verify(
     TypedOrTypeAttr sourceAttr,
     PoisonMask)
 {
-    // Must have a source attribute.
     if (!sourceAttr) return emitError() << "expected source attribute";
-
-    // Full poison is indicated by a TypeAttr.
     if (llvm::isa<TypeAttr>(sourceAttr)) {
         if (sourceDialect) return emitError() << "no source dialect allowed";
         return success();
     }
-
-    // Nesting is not allowed.
     if (llvm::isa<PoisonAttr>(sourceAttr))
         return emitError() << "PoisonAttr may not be nested";
-    // Otherwise, must have a source dialect.
     if (!sourceDialect) return emitError() << "expected source dialect";
-
     return success();
 }
 

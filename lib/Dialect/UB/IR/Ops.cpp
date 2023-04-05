@@ -8,11 +8,10 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 
-#define DEBUG_TYPE "ub-ops"
-
 using namespace mlir;
 using namespace mlir::ub;
 
+/// Prints @p type if it is not NeverType.
 static void printMaybeNever(OpAsmPrinter &p, Operation*, Type type)
 {
     if (llvm::isa<NeverType>(type)) return;
@@ -20,6 +19,7 @@ static void printMaybeNever(OpAsmPrinter &p, Operation*, Type type)
     p << " : " << type;
 }
 
+/// Parses a @p type or NeverType.
 static ParseResult parseMaybeNever(OpAsmParser &p, Type &type)
 {
     if (p.parseOptionalColon()) {

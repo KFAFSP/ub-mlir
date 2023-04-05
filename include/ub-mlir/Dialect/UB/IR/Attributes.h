@@ -11,10 +11,7 @@
 #include "ub-mlir/Dialect/UB/Analysis/PoisonMask.h"
 #include "ub-mlir/Dialect/UB/IR/Base.h"
 
-#include "llvm/ADT/APInt.h"
-
-#include <algorithm>
-#include <optional>
+#include <concepts>
 
 namespace mlir::ub {
 
@@ -26,13 +23,13 @@ using DialectRef = Dialect*;
 /// Satisfied by TypedAttr or TypeAttr.
 class TypedOrTypeAttr : public Attribute {
 public:
-    using Attribute::Attribute;
-
     // @copydoc classof(Attribute)
     [[nodiscard]] static bool classof(TypedAttr) { return true; }
     // @copydoc classof(Attribute)
     [[nodiscard]] static bool classof(TypeAttr) { return true; }
     /// Determines whether @p attr is a ValueOrTypeAttr.
+    ///
+    /// @pre    `attr`
     [[nodiscard]] static bool classof(Attribute attr)
     {
         return llvm::isa<TypedAttr, TypeAttr>(attr);
@@ -41,11 +38,10 @@ public:
     /// Builds the canonical TypedOrTypeAttr for @p attr .
     ///
     /// @pre    `attr`
-    [[nodiscard]] static TypedOrTypeAttr get(TypedAttr attr) { return attr; }
-    /// Builds the canonical TypedOrTypeAttr for @p attr .
-    ///
-    /// @pre    `attr`
-    [[nodiscard]] static TypedOrTypeAttr get(TypeAttr attr) { return attr; }
+    [[nodiscard]] static TypedOrTypeAttr get(TypedOrTypeAttr attr)
+    {
+        return attr;
+    }
     /// Builds the canonical TypedOrTypeAttr for @p type .
     ///
     /// @pre    `type`
@@ -53,6 +49,8 @@ public:
     {
         return TypeAttr::get(type);
     }
+
+    using Attribute::Attribute;
 
     /// Initializes a TypedOrTypeAttr from @p attr .
     ///
@@ -94,13 +92,11 @@ namespace mlir::ub {
 
 /// Concept for an attribute that is either @p ValueAttr or a PoisonAttr of it.
 ///
-/// @warning @p ValueAttr must be a TypedAttr!
-template<class ValueAttr>
+/// @pre    @p ValueAttr is a TypedAttr
+template<std::derived_from<Attribute> ValueAttr>
 class ValueOrPoisonAttr : public Attribute {
 public:
     using ValueType = decltype(std::declval<ValueAttr>().getType());
-
-    using Attribute::Attribute;
 
     // @copydoc classof(Attribute)
     [[nodiscard]] static bool classof(ValueAttr) { return true; }
@@ -111,6 +107,8 @@ public:
                || llvm::isa<ValueAttr>(poisonAttr.getSourceAttr());
     }
     /// Determines whether @p attr is a ValueOrPoisonAttr.
+    ///
+    /// @pre    `attr`
     [[nodiscard]] static bool classof(Attribute attr)
     {
         if (llvm::isa<ValueAttr>(attr)) return true;
@@ -167,6 +165,8 @@ public:
     {
         return valueAttr;
     }
+
+    using Attribute::Attribute;
 
     /// Initializes a ValueOrPoisonAttr from @p attr .
     ///

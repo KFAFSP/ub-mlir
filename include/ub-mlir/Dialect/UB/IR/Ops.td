@@ -160,6 +160,15 @@ def UB_NeverOp : UB_ConstantOpBase<"never", [OpAsmOpInterface]> {
     let arguments = (ins);
     let results = (outs AnyType:$result);
 
+    let builders = [
+        OpBuilder<(ins CArg<"Type", "{}">:$result),
+        [{
+            if (!result) result = NeverType::get($_builder.getContext());
+            $_state.addTypes(result);
+        }]>
+    ];
+    let skipDefaultBuilders = 1;
+
     let assemblyFormat = "attr-dict custom<MaybeNever>(type($result))";
 
     code extraClassDeclaration = [{
