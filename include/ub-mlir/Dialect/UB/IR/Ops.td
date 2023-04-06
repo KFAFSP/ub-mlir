@@ -143,6 +143,11 @@ def UB_NeverOp : UB_ConstantOpBase<"never", [OpAsmOpInterface]> {
 
         If no type is specified, the result type is `!ub.never`.
 
+        Operations that use a `ub.never` result are unreachable by definition,
+        regardless of their side-effects, and thus removed. Their results are
+        substituted for `ub.never`. Terminators are unaffected, but are marked
+        as `ub.unreachable` if in SSACFG regions.
+
         Syntax:
 
         ```
@@ -170,6 +175,8 @@ def UB_NeverOp : UB_ConstantOpBase<"never", [OpAsmOpInterface]> {
     let skipDefaultBuilders = 1;
 
     let assemblyFormat = "attr-dict custom<MaybeNever>(type($result))";
+
+    let hasCanonicalizer = 1;
 
     code extraClassDeclaration = [{
     public:

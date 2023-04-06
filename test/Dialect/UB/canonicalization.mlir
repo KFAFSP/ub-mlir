@@ -46,3 +46,17 @@ func.func @freeze_poison() -> i64 {
     return %0 : i64
 }
 
+//===----------------------------------------------------------------------===//
+// never
+//===----------------------------------------------------------------------===//
+
+// CHECK-LABEL: func.func @never_propagation(
+func.func @never_propagation(%arg0: i64) -> i64 {
+    // CHECK-DAG: %[[NEVER:.+]] = ub.never : i64
+    %never0 = ub.never : i64
+    %0 = arith.muli %arg0, %arg0 : i64
+    %1 = arith.addi %0, %never0 : i64
+    %2 = arith.muli %1, %1 : i64
+    // CHECK: return %[[NEVER]] : i64 {ub.unreachable}
+    return %2 : i64
+}

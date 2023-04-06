@@ -20,6 +20,23 @@ using namespace mlir::ub;
 
 //===----------------------------------------------------------------------===//
 
+bool mlir::ub::isSSACFGTerminator(Operation* op)
+{
+    if (!op->hasTrait<OpTrait::IsTerminator>()) return false;
+    assert(op->getParentOp());
+
+    // NOTE: An operation that does not implement RegionKindInterface is
+    //       assumed to have only SSACFG regions per MLIR core!
+    if (auto regionKindIface =
+            llvm::dyn_cast_if_present<RegionKindInterface>(op->getParentOp())) {
+        const auto regionIdx = op->getParentRegion()->getRegionNumber();
+        if (regionKindIface.getRegionKind(regionIdx) != RegionKind::SSACFG)
+            return false;
+    }
+
+    return true;
+}
+
 namespace {
 
 struct UBInlinerInterface : public DialectInlinerInterface {
@@ -61,7 +78,8 @@ Operation* UBDialect::materializeConstant(
             return attr.getSourceDialect()
                 ->materializeConstant(builder, attr, type, location);
         })
-        .Case([&](NeverAttr) { return builder.create<NeverOp>(location); })
+        .Case(
+            [&](NeverAttr) { return builder.create<NeverOp>(location, type); })
         .Default(static_cast<Operation*>(nullptr));
 }
 
@@ -69,27 +87,16 @@ LogicalResult
 UBDialect::verifyOperationAttribute(Operation* op, NamedAttribute attr)
 {
     if (attr.getName() == kUnreachableAttrName) {
-        if (!op->hasTrait<OpTrait::IsTerminator>())
-            return op->emitError() << "attribute '" << kUnreachableAttrName
-                                   << "' is only applicable to terminators";
-
-        // NOTE: An operation that does not implement RegionKindInterface is
-        //       assumed to have only SSACFG regions per MLIR core!
-        if (auto regionKindIface =
-                llvm::dyn_cast_if_present<RegionKindInterface>(
-                    op->getParentOp())) {
-            const auto regionIdx = op->getParentRegion()->getRegionNumber();
-            if (regionKindIface.getRegionKind(regionIdx) != RegionKind::SSACFG)
-                return op->emitError()
-                       << "attribute '" << kUnreachableAttrName
-                       << "' is only applicable in SSACFG regions";
-        }
+        if (!isSSACFGTerminator(op))
+            return op->emitError()
+                   << "attribute '" << kUnreachableAttrName
+                   << "' is only applicable to SSACFG terminators";
 
         return success();
     }
 
     return op->emitError()
-           << "attribute '" << attr.getName()
+           << "attribute '" << attr.getName().getValue()
            << "' not supported as an op attribute by the ub dialect";
 }
 

@@ -16,7 +16,7 @@ static void printMaybeNever(OpAsmPrinter &p, Operation*, Type type)
 {
     if (llvm::isa<NeverType>(type)) return;
 
-    p << " : " << type;
+    p << ": " << type;
 }
 
 /// Parses a @p type or NeverType.
@@ -149,6 +149,48 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
 OpFoldResult NeverOp::fold(NeverOp::FoldAdaptor)
 {
     return NeverAttr::get(getType());
+}
+
+namespace {
+
+struct PropagateNever : OpRewritePattern<NeverOp> {
+    using OpRewritePattern::OpRewritePattern;
+
+    virtual LogicalResult
+    matchAndRewrite(NeverOp op, PatternRewriter &rewriter) const override
+    {
+        auto propagated = false;
+        for (auto user : op->getUsers()) {
+            // Do not erase block terminators.
+            if (user->getBlock()->getTerminator() == user) {
+                // But do mark them as unreachable.
+                propagated |= markAsUnreachable(user);
+                continue;
+            }
+
+            // Replace all results of the user with never values, deleting the
+            // op if it has no results at all.
+            rewriter.replaceOp(
+                user,
+                llvm::to_vector(
+                    llvm::map_range(user->getResultTypes(), [&](Type type) {
+                        return rewriter.create<NeverOp>(user->getLoc(), type)
+                            .getResult();
+                    })));
+            propagated = true;
+        }
+
+        return success(propagated);
+    }
+};
+
+} // namespace
+
+void NeverOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns,
+    MLIRContext* ctx)
+{
+    patterns.add<PropagateNever>(ctx);
 }
 
 //===----------------------------------------------------------------------===//
