@@ -26,9 +26,4 @@ namespace mlir::ub {
 /// Name of the `ub.unreachable` discardable attribute.
 static constexpr std::string_view kUnreachableAttrName = "ub.unreachable";
 
-/// Determines whether @p op is a terminator of an SSACFG block.
-///
-/// @pre    `op`
-[[nodiscard]] bool isSSACFGTerminator(Operation* op);
-
 } // namespace mlir::ub

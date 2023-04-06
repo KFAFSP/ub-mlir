@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "ub-mlir/Dialect/UB/Analysis/Unreachable.h"
 #include "ub-mlir/Dialect/UB/IR/Ops.h"
 
 namespace mlir::ub {

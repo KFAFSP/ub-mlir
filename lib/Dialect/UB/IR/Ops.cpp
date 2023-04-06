@@ -7,6 +7,7 @@
 
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
+#include "ub-mlir/Dialect/UB/IR/UB.h"
 
 using namespace mlir;
 using namespace mlir::ub;

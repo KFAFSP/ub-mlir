@@ -5,7 +5,6 @@
 
 #include "ub-mlir/Dialect/UB/IR/Base.h"
 
-#include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "ub-mlir/Dialect/UB/IR/UB.h"
 
@@ -19,23 +18,6 @@ using namespace mlir::ub;
 #include "ub-mlir/Dialect/UB/IR/Base.cpp.inc"
 
 //===----------------------------------------------------------------------===//
-
-bool mlir::ub::isSSACFGTerminator(Operation* op)
-{
-    if (!op->hasTrait<OpTrait::IsTerminator>()) return false;
-    assert(op->getParentOp());
-
-    // NOTE: An operation that does not implement RegionKindInterface is
-    //       assumed to have only SSACFG regions per MLIR core!
-    if (auto regionKindIface =
-            llvm::dyn_cast_if_present<RegionKindInterface>(op->getParentOp())) {
-        const auto regionIdx = op->getParentRegion()->getRegionNumber();
-        if (regionKindIface.getRegionKind(regionIdx) != RegionKind::SSACFG)
-            return false;
-    }
-
-    return true;
-}
 
 namespace {
 
