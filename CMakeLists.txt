@@ -71,5 +71,11 @@ add_compile_options(
 
 add_subdirectory(include)
 add_subdirectory(lib)
+
+if(TARGET MLIRTestDialect)
+    set(MLIR_INCLUDE_TESTS 1)
+    add_compile_definitions(MLIR_INCLUDE_TESTS=1)
+endif()
+
 add_subdirectory(test)
 add_subdirectory(tools)

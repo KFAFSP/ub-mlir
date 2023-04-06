@@ -10,6 +10,10 @@ add_executable(${PROJECT_NAME}
     ub-opt.cpp
 )
 
+if(MLIR_INCLUDE_TESTS)
+    set(test_libs "MLIRTestDialect")
+endif()
+
 # Link all standard MLIR dialect and conversion libs.
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
@@ -18,4 +22,5 @@ target_link_libraries(${PROJECT_NAME}
         MLIROptLib
         ${dialect_libs}
         ${conversion_libs}
+        ${test_libs}
 )
