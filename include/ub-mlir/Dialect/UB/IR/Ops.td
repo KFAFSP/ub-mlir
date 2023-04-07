@@ -137,16 +137,9 @@ def UB_FreezeOp
 def UB_NeverOp : UB_ConstantOpBase<"never", [OpAsmOpInterface]> {
     let summary = "Unreachable value constant operation";
     let description = [{
-        The `never` operation materializes an unreachable value of any type.
-        Values produced in this way will never occur during any program
-        execution, and are therefore indicators of trivially dead code paths.
-
-        If no type is specified, the result type is `!ub.never`.
-
-        Operations that use a `ub.never` result are unreachable by definition,
-        regardless of their side-effects, and thus removed. Their results are
-        substituted for `ub.never`. Terminators are unaffected, but are marked
-        as `ub.unreachable` if in SSACFG regions.
+        The `never` operation never produces a result, i.e., is an operation
+        from which control flow never returns. It materializes an unreachable
+        value of any type. If no type is specified, the result type is `never`.
 
         Syntax:
 
@@ -175,8 +168,6 @@ def UB_NeverOp : UB_ConstantOpBase<"never", [OpAsmOpInterface]> {
     let skipDefaultBuilders = 1;
 
     let assemblyFormat = "attr-dict custom<MaybeNever>(type($result))";
-
-    let hasCanonicalizer = 1;
 
     code extraClassDeclaration = [{
     public:

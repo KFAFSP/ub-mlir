@@ -116,7 +116,8 @@ def UB_NeverAttr : UB_Attr<"Never", [TypedAttrInterface]> {
     let summary = "Unreachable value attribute";
     let description = [{
         The `never` attribute represents a compile-time proposition that a value
-        will never be computed, i.e., is the result of a dead code path.
+        will never become available, i.e., is the result of an unreachable
+        operation.
 
         Syntax:
 
