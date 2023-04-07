@@ -5,6 +5,7 @@
 
 #include "ub-mlir/Dialect/UB/IR/Base.h"
 
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "ub-mlir/Dialect/UB/IR/UB.h"
 
@@ -65,14 +66,73 @@ Operation* UBDialect::materializeConstant(
         .Default(static_cast<Operation*>(nullptr));
 }
 
+namespace {
+
+struct UnreachableIsNoReturn : RewritePattern {
+    static constexpr StringRef generatedNames[] = {"ub.never"};
+
+    UnreachableIsNoReturn(MLIRContext* ctx)
+            : RewritePattern(MatchAnyOpTypeTag{}, 1, ctx, generatedNames)
+    {}
+
+    virtual LogicalResult
+    matchAndRewrite(Operation* op, PatternRewriter &rewriter) const override
+    {
+        const auto isConstant = [](Value value) {
+            if (auto def = value.getDefiningOp())
+                return def->hasTrait<OpTrait::ConstantLike>();
+            return false;
+        };
+        if (!isKnownUnreachable(op)
+            || !llvm::all_of(op->getOperands(), isConstant))
+            return failure();
+
+        if (op->getNumResults() == 0) {
+            if (&op->getBlock()->back() == op) {
+                // Operation is potentially a terminator, so just optimistically
+                // mark it as unreachable.
+                return success(markAsUnreachable(op));
+            }
+
+            // Operation is never scheduled.
+            rewriter.eraseOp(op);
+            return success();
+        }
+
+        // Attempt folding the operation away.
+        SmallVector<Value> foldResults;
+        if (succeeded(rewriter.tryFold(op, foldResults))) {
+            rewriter.replaceOp(op, foldResults);
+            return success();
+        }
+
+        // Replace the operation with never values.
+        rewriter.replaceOp(
+            op,
+            llvm::to_vector(
+                llvm::map_range(op->getResultTypes(), [&](Type type) {
+                    return rewriter.create<NeverOp>(op->getLoc(), type)
+                        .getResult();
+                })));
+        return success();
+    }
+};
+
+} // namespace
+
+void UBDialect::getCanonicalizationPatterns(RewritePatternSet &patterns) const
+{
+    patterns.add<UnreachableIsNoReturn>(patterns.getContext());
+}
+
 LogicalResult
 UBDialect::verifyOperationAttribute(Operation* op, NamedAttribute attr)
 {
     if (attr.getName() == kUnreachableAttrName) {
-        if (!isSSACFGTerminator(op))
+        if (!isCFTerminator(op))
             return op->emitError()
                    << "attribute '" << kUnreachableAttrName
-                   << "' is only applicable to SSACFG terminators";
+                   << "' is only applicable to control flow terminators";
 
         return success();
     }

@@ -50,13 +50,25 @@ func.func @freeze_poison() -> i64 {
 // never
 //===----------------------------------------------------------------------===//
 
-// CHECK-LABEL: func.func @never_propagation(
-func.func @never_propagation(%arg0: i64) -> i64 {
+// CHECK-LABEL: func.func @never_erase(
+// CHECK-SAME: %[[ARG0:.+]]: i64
+func.func @never_erase(%arg0: i64) -> i64 {
     // CHECK-DAG: %[[NEVER:.+]] = ub.never : i64
     %never0 = ub.never : i64
-    %0 = arith.muli %arg0, %arg0 : i64
-    %1 = arith.addi %0, %never0 : i64
+    %cst1 = arith.constant 1 : i64
+    %1 = arith.addi %cst1, %never0 : i64
     %2 = arith.muli %1, %1 : i64
-    // CHECK: return %[[NEVER]] : i64 {ub.unreachable}
+    // CHECK: return {ub.unreachable} %[[NEVER]] : i64
     return %2 : i64
+}
+
+// CHECK-LABEL: func.func @never_branch(
+func.func @never_branch() -> i64 {
+    // CHECK-DAG: %[[NEVER:.+]] = ub.never : i64
+    %never0 = ub.never : i64
+    cf.br ^unreachable(%never0: i64)
+
+^unreachable(%arg0: i64):
+    // CHECK: return {ub.unreachable} %[[NEVER]] : i64
+    return %arg0: i64
 }

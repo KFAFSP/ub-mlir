@@ -1,6 +1,6 @@
 add_mlir_library(UBAnalysis
         PoisonMask.cpp
-        Unreachable.cpp
+        ReachabilityAnalysis.cpp
 
     ENABLE_AGGREGATION
 )

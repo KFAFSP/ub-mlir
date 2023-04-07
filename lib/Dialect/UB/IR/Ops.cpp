@@ -144,6 +144,31 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
 }
 
 //===----------------------------------------------------------------------===//
+// UnreachableOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+
+struct DropUnreachableAttr : OpRewritePattern<UnreachableOp> {
+    using OpRewritePattern::OpRewritePattern;
+
+    virtual LogicalResult
+    matchAndRewrite(UnreachableOp op, PatternRewriter &) const override
+    {
+        return success(!!op->removeAttr(kUnreachableAttrName));
+    }
+};
+
+} // namespace
+
+void UnreachableOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns,
+    MLIRContext* ctx)
+{
+    patterns.add<DropUnreachableAttr>(ctx);
+}
+
+//===----------------------------------------------------------------------===//
 // NeverOp
 //===----------------------------------------------------------------------===//
 

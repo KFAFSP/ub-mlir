@@ -131,6 +131,39 @@ def UB_FreezeOp
 }
 
 //===----------------------------------------------------------------------===//
+// UnreachableOp
+//===----------------------------------------------------------------------===//
+
+def UB_UnreachableOp : UB_Op<"unreachable", [Pure, Terminator]> {
+    let summary = "Unreachable SSACFG terminator";
+    let description = [{
+        The `unreachable` operation terminates an SSACFG block without transfer
+        of control flow to a successor. Additionally, it requires that its code
+        path can never be executed.
+
+        Syntax:
+
+        ```
+        unreachable-op ::= `unreachable`
+        ```
+
+        Examples:
+
+        ```
+        ^bb0:
+            ub.unreachable
+        ```
+    }];
+
+    let arguments = (ins);
+    let results = (outs);
+
+    let assemblyFormat = "attr-dict";
+
+    let hasCanonicalizer = 1;
+}
+
+//===----------------------------------------------------------------------===//
 // NeverOp
 //===----------------------------------------------------------------------===//
 

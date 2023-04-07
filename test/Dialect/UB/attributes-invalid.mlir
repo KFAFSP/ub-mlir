@@ -26,7 +26,7 @@ func.func @unreachable_not_a_terminator() -> i64 {
 func.func @unreachable_not_SSACFG() {
     %cst0 = arith.constant 0 : i64
     test.graph_region {
-        // expected-error@+1 {{SSACFG}}
+        // expected-error@+1 {{control flow}}
         test.region_yield %cst0 : i64 {ub.unreachable}
     }
     return
