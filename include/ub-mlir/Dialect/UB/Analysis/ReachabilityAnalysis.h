@@ -138,7 +138,8 @@ namespace mlir::ub {
 /// @pre    `block`
 [[nodiscard]] inline bool isKnownNoReturn(Block* block)
 {
-    return isTerminator(&block->back()) && isKnownUnreachable(&block->back());
+    return !block->empty() && isTerminator(&block->back())
+           && isKnownUnreachable(&block->back());
 }
 
 /// Determines whether @p block is known to be unreachable.

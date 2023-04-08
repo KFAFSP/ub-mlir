@@ -24,7 +24,7 @@ bool mlir::ub::markAsUnreachable(Value value)
     // Find the earliest possible insertion point.
     OpBuilder builder(value.getContext());
     const auto loc =
-        llvm::TypeSwitch<Value, Optional<Location>>(value)
+        llvm::TypeSwitch<Value, std::optional<Location>>(value)
             .Case([&](OpResult result) {
                 builder.setInsertionPointAfter(result.getOwner());
                 return result.getOwner()->getLoc();
@@ -33,7 +33,8 @@ bool mlir::ub::markAsUnreachable(Value value)
                 builder.setInsertionPointToStart(arg.getParentBlock());
                 return arg.getLoc();
             })
-            .Default([](auto) -> Optional<Location> { return std::nullopt; });
+            .Default(
+                [](auto) -> std::optional<Location> { return std::nullopt; });
     if (!loc) return false;
 
     // Replace all uses with the earliest-possible materialized never value.
@@ -68,26 +69,23 @@ bool mlir::ub::markAsUnreachable(Operation* op)
 
 bool mlir::ub::markAsUnreachable(Block* block, Block::iterator pos)
 {
+    std::optional<Location> maybeLoc;
     if (!block->empty()) {
         // Try to avoid splitting by just marking the terminator.
         const auto lastPos =
             pos == block->end() ? Block::iterator(&block->back()) : pos;
         if (isCFTerminator(&*lastPos)) return markAsUnreachable(&*lastPos);
+
+        // Split the block before pos.
+        auto unreachableBlock = block->splitBlock(pos);
+        if (!unreachableBlock->empty())
+            maybeLoc = unreachableBlock->front().getLoc();
     }
 
-    auto unreachableBlock = block->splitBlock(pos);
+    if (!maybeLoc && !block->empty()) maybeLoc = block->back().getLoc();
+
     OpBuilder builder(block, block->end());
-
-    const auto loc = [&]() -> Location {
-        if (!block->empty())
-            return block->back().getLoc();
-        else if (!unreachableBlock->empty())
-            return unreachableBlock->front().getLoc();
-        else
-            return UnknownLoc::get(builder.getContext());
-    }();
-
     builder.setInsertionPointToEnd(block);
-    builder.create<UnreachableOp>(loc);
+    builder.create<UnreachableOp>(maybeLoc.value_or(builder.getUnknownLoc()));
     return true;
 }
