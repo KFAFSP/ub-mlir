@@ -71,17 +71,6 @@ namespace mlir::ub {
     return op->getBlock() && isSSACFG(op->getBlock());
 }
 
-/// Determines whether @p op is a well-defined control flow terminator.
-///
-/// A well-defined control flow terminator is either a RegionBranchTerminatorOp,
-/// or any terminator inside a SSACFG block.
-///
-/// @pre    `op`
-[[nodiscard]] inline bool isCFTerminator(Operation* op)
-{
-    return isRegionBranchTerminator(op) || (isTerminator(op) && isSSACFG(op));
-}
-
 //===----------------------------------------------------------------------===//
 // Pessimistic reachability tests
 //===----------------------------------------------------------------------===//

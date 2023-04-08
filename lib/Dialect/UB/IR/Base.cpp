@@ -129,7 +129,7 @@ LogicalResult
 UBDialect::verifyOperationAttribute(Operation* op, NamedAttribute attr)
 {
     if (attr.getName() == kUnreachableAttrName) {
-        if (!isCFTerminator(op))
+        if (!llvm::isa<ControlFlowTerminator>(op))
             return op->emitError()
                    << "attribute '" << kUnreachableAttrName
                    << "' is only applicable to control flow terminators";
@@ -150,4 +150,7 @@ void UBDialect::initialize()
 
     // Implement the inliner interface.
     addInterfaces<UBInlinerInterface>();
+
+    // Registers interface models for built-ins.
+    registerControlFlowTerminatorOpInterfaceModels(*getContext());
 }

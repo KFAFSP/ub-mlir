@@ -49,7 +49,7 @@ bool mlir::ub::markAsUnreachable(Operation* op)
     // NOTE: We could use an OperationFolder here too, but that seems overkill
     //       considering users are expected to keep canonicalizing.
     OpBuilder builder(op);
-    bool modified =
+    const bool modified =
         llvm::count_if(op->getOpOperands(), [&](OpOperand &operand) {
             if (isKnownUnreachable(operand.get())) return false;
             operand.set(
@@ -58,13 +58,8 @@ bool mlir::ub::markAsUnreachable(Operation* op)
             return true;
         });
 
-    if (isCFTerminator(op)) {
-        // Carry the unreachability constraint as an attribute.
-        op->setAttr(kUnreachableAttrName, UnitAttr::get(op->getContext()));
-        return true;
-    }
-
-    return modified;
+    return modified
+           | llvm::dyn_cast<ControlFlowTerminator>(op).markAsUnreachable();
 }
 
 bool mlir::ub::markAsUnreachable(Block* block, Block::iterator pos)
@@ -74,7 +69,8 @@ bool mlir::ub::markAsUnreachable(Block* block, Block::iterator pos)
         // Try to avoid splitting by just marking the terminator.
         const auto lastPos =
             pos == block->end() ? Block::iterator(&block->back()) : pos;
-        if (isCFTerminator(&*lastPos)) return markAsUnreachable(&*lastPos);
+        if (auto iface = llvm::dyn_cast<ControlFlowTerminator>(&*lastPos))
+            return iface.markAsUnreachable();
 
         // Split the block before pos.
         auto unreachableBlock = block->splitBlock(pos);

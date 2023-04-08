@@ -10,6 +10,7 @@
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/BuiltinTypes.td"
 include "mlir/IR/OpBase.td"
+include "ub-mlir/Dialect/UB/Interfaces/Interfaces.td"
 
 def UB_Dialect : Dialect {
     let name = "ub";
@@ -26,7 +27,10 @@ def UB_Dialect : Dialect {
     let hasCanonicalizer = 1;
     let useDefaultAttributePrinterParser = 1;
     let useDefaultTypePrinterParser = 1;
-    let useFoldAPI = kEmitFoldAdaptorFolder;
+
+    let dependentDialects = [
+        "LLVM::LLVMDialect"
+    ];
 
     code extraClassDeclaration = [{
     private:

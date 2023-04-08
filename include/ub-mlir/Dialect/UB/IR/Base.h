@@ -5,9 +5,11 @@
 
 #pragma once
 
+#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
+#include "ub-mlir/Dialect/UB/Interfaces/Interfaces.h"
 
 #include <string_view>
 

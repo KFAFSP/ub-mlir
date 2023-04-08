@@ -13,4 +13,5 @@ add_mlir_dialect_library(UBDialect
         MLIRParser
         MLIRSideEffectInterfaces
         UBAnalysis
+        UBInterfaces
 )
