@@ -98,7 +98,7 @@ bool mlir::ub::markAsUnreachable(
             return markAsUnreachable(rewriter, term);
 
         // Split the block before pos.
-        auto unreachableBlock = block->splitBlock(pos);
+        auto unreachableBlock = rewriter.splitBlock(block, pos);
         if (!unreachableBlock->empty())
             maybeLoc = unreachableBlock->front().getLoc();
     }

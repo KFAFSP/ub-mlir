@@ -11,7 +11,10 @@
 #include "ub-mlir/Dialect/UB/IR/Types.h"
 #include "ub-mlir/Dialect/UB/Interfaces/ControlFlowTerminatorOpInterface.h"
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
+
+#include <optional>
 
 namespace mlir::ub {
 
@@ -236,11 +239,36 @@ public:
 /// complex forms of control flow, and memoizes the results. It is also possible
 /// to feed it with assumptions. Note that known propositions always evaluate to
 /// @c true and are not memoized.
+///
+/// Control flow that is followed by this analysis includes:
+///
+///     - Intra-block SSACFG control flow.
+///     - Inter-block branches.
+///     - RegionBranchOpInterface control flow.
+///     - CallOpInterface control flow.
+///
+/// This analysis is observable, and listeners may be used to intercept and
+/// materialize the transitive results in IR.
 class UnreachabilityAnalysis {
     using HandleT = const void*;
-    using LookupT = llvm::DenseMap<HandleT, bool>;
+    using LookupT = llvm::DenseSet<HandleT>;
+    using ListenerT = std::function<bool(HandleT, TypeID)>;
+    using ListenersT = llvm::SmallVector<ListenerT, 3>;
 
 public:
+    /// Determines whether @p value is unreachable.
+    ///
+    /// Value reachability is not memoized and not observable.
+    ///
+    /// @pre    `value`
+    bool isUnreachable(Value value)
+    {
+        return llvm::TypeSwitch<Value, bool>(value)
+            .Case([](UnreachableValue) { return true; })
+            .Case(
+                [&](OpResult value) { return isUnreachable(value.getOwner()); })
+            .Default([](auto) { return false; });
+    }
     /// Determines whether @p op is unreachable.
     ///
     /// @pre    `op`
@@ -282,6 +310,19 @@ public:
         return assumeImpl(m_unreachable, region);
     }
 
+    /// Attaches a @p listener that is called when unreachable is deduced.
+    ///
+    /// The @p listener must accept an IR element pointer and return bool. If
+    /// @p listener returns @c false , the element is not memoized.
+    template<class Listener>
+    void listenUnreachable(Listener &&listener)
+    {
+        using FnTraits = llvm::function_traits<Listener>;
+        attachListener<typename FnTraits::template arg_t<0>>(
+            m_unreachableListeners,
+            std::forward<Listener>(listener));
+    }
+
     /// Determines whether @p op does not return.
     ///
     /// @pre    `op`
@@ -320,45 +361,82 @@ public:
         return assumeImpl(m_noreturn, region);
     }
 
-private:
-    std::optional<bool> computeUnreachable(Operation* op);
-    std::optional<bool> computeUnreachable(Block* block);
-    std::optional<bool> computeUnreachable(Region* region);
+    /// Attaches a @p listener that is called when noreturn is deduced.
+    ///
+    /// The @p listener must accept an IR element pointer and return bool. If
+    /// @p listener returns @c false , the element is not memoized.
+    template<class Listener>
+    void listenNoReturn(Listener &&listener)
+    {
+        using FnTraits = llvm::function_traits<Listener>;
+        attachListener<typename FnTraits::template arg_t<0>>(
+            m_noreturnListeners,
+            std::forward<Listener>(listener));
+    }
 
-    std::optional<bool> computeNoReturn(Operation* op);
-    std::optional<bool> computeNoReturn(Block* block);
-    std::optional<bool> computeNoReturn(Region* region);
+private:
+    bool computeUnreachable(Operation* op);
+    bool computeUnreachable(Block* block);
+    bool computeUnreachable(Region* region);
+
+    bool computeNoReturn(Operation* op);
+    bool computeNoReturn(Block* block);
+    bool computeNoReturn(Region* region);
+
+    template<class T>
+    void
+    attachListener(ListenersT &listeners, std::invocable<T> auto &&listener)
+    {
+        listeners.push_back([listener = std::forward<decltype(listener)>(
+                                 listener)](HandleT handle, TypeID type) {
+            if (type == TypeID::get<T>()) return listener(T(handle));
+            return true;
+        });
+    }
+    bool notifyListenersImpl(ListenersT &listeners, HandleT handle, TypeID type)
+    {
+        return llvm::count_if(
+                   listeners,
+                   [&](ListenerT &listener) { return listener(handle, type); })
+               != static_cast<long>(listeners.size());
+    }
 
     bool isUnreachableImpl(auto* ptr)
     {
-        const auto it = m_unreachable.find(HandleT(ptr));
-        if (it != m_unreachable.end()) return it->second;
-        if (const auto computed = computeUnreachable(ptr)) {
-            m_unreachable[HandleT(ptr)] = *computed;
-            return *computed;
+        if (m_unreachable.contains(HandleT(ptr))) return true;
+        if (computeUnreachable(ptr)) {
+            if (notifyListenersImpl(
+                    m_unreachableListeners,
+                    HandleT(ptr),
+                    TypeID::get<decltype(ptr)>()))
+                m_unreachable.insert(HandleT(ptr));
+            return true;
         }
 
         return false;
     }
     bool isNoReturnImpl(auto* ptr)
     {
-        const auto it = m_noreturn.find(HandleT(ptr));
-        if (it != m_noreturn.end()) return it->second;
-        if (const auto computed = computeNoReturn(ptr)) {
-            m_noreturn[HandleT(ptr)] = *computed;
-            return *computed;
+        if (m_noreturn.contains(HandleT(ptr))) return true;
+        if (computeNoReturn(ptr)) {
+            if (notifyListenersImpl(
+                    m_noreturnListeners,
+                    HandleT(ptr),
+                    TypeID::get<decltype(ptr)>()))
+                m_noreturn.insert(HandleT(ptr));
+            return true;
         }
 
         return false;
     }
+
     bool assumeImpl(LookupT &lookup, auto* ptr)
     {
-        const auto result = !lookup[HandleT(ptr)];
-        lookup[HandleT(ptr)] = true;
-        return result;
+        return lookup.insert(HandleT(ptr)).second;
     }
 
     LookupT m_unreachable, m_noreturn;
+    ListenersT m_unreachableListeners, m_noreturnListeners;
 };
 
 } // namespace mlir::ub
