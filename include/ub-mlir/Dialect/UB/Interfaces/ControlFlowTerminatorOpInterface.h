@@ -16,6 +16,33 @@
 
 #include "llvm/ADT/TypeSwitch.h"
 
+namespace mlir::ub {
+
+//===----------------------------------------------------------------------===//
+// SSACFG traits
+//===----------------------------------------------------------------------===//
+
+/// Determines whether @p region is an SSACFG region.
+///
+/// @pre    `region`
+[[nodiscard]] bool isSSACFG(Region* region);
+/// Determines whether @p block is an SSACFG block.
+///
+/// @pre    `block`
+[[nodiscard]] inline bool isSSACFG(Block* block)
+{
+    return isSSACFG(block->getParent());
+}
+/// Determines whether @p op is inside an SSACFG block.
+///
+/// @pre    `op`
+[[nodiscard]] inline bool isSSACFG(Operation* op)
+{
+    return op->getBlock() && isSSACFG(op->getBlock());
+}
+
+} // namespace mlir::ub
+
 namespace mlir::ub::control_flow_terminator_op_interface_defaults {
 
 /// Determines whether @p op is known to be unreachable.
@@ -52,6 +79,7 @@ namespace mlir::ub {
 ///     - Implementations of BranchOpInterface.
 ///     - Implementations of RegionBranchTerminatorOpInterface.
 ///     - Implementations of ControlFlowTerminatorOpInterface.
+///     - Terminators in SSACFG contexts.
 ///
 /// This concept indicates the the given terminator passes control flow to some
 /// successor(s), leaving the current block. Therefore, it can be part of
@@ -79,7 +107,9 @@ public:
             .Case([](BranchOpInterface) { return true; })
             .Case([](RegionBranchTerminatorOpInterface) { return true; })
             .Case([](ControlFlowTerminatorOpInterface) { return true; })
-            .Default([](auto) { return false; });
+            .Default([](Operation* op) {
+                return op->hasTrait<OpTrait::IsTerminator>() && isSSACFG(op);
+            });
     }
 
     /// Initializes a null ControlFlowTerminator.

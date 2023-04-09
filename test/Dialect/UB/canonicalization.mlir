@@ -50,6 +50,8 @@ func.func @freeze_poison() -> i64 {
 // never
 //===----------------------------------------------------------------------===//
 
+func.func private @no_result(%arg0: i64)
+
 // CHECK-LABEL: func.func @never_erase(
 // CHECK-SAME: %[[ARG0:.+]]: i64
 func.func @never_erase(%arg0: i64) -> i64 {
@@ -58,6 +60,8 @@ func.func @never_erase(%arg0: i64) -> i64 {
     %cst1 = arith.constant 1 : i64
     %1 = arith.addi %cst1, %never0 : i64
     %2 = arith.muli %1, %1 : i64
+    // CHECK-NOT: func.call @no_result
+    func.call @no_result(%1) : (i64) -> ()
     // CHECK: return {ub.unreachable} %[[NEVER]] : i64
     return %2 : i64
 }

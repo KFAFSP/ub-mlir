@@ -7,10 +7,26 @@
 
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/RegionKindInterface.h"
 #include "ub-mlir/Dialect/UB/IR/UB.h"
 
 using namespace mlir;
 using namespace mlir::ub;
+
+//===----------------------------------------------------------------------===//
+// SSACFG traits
+//===----------------------------------------------------------------------===//
+
+bool mlir::ub::isSSACFG(Region* region)
+{
+    // NOTE: An operation that does not implement RegionKindInterface is
+    //       assumed to have only SSACFG regions per MLIR core!
+    auto iface =
+        llvm::dyn_cast_if_present<RegionKindInterface>(region->getParentOp());
+    if (!iface) return true;
+
+    return iface.getRegionKind(region->getRegionNumber()) == RegionKind::SSACFG;
+}
 
 //===----------------------------------------------------------------------===//
 // Interface defaults

@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Transforms/FoldUtils.h"
 #include "ub-mlir/Dialect/UB/IR/Ops.h"
 #include "ub-mlir/Dialect/UB/IR/Types.h"
@@ -17,38 +16,6 @@
 #include <optional>
 
 namespace mlir::ub {
-
-//===----------------------------------------------------------------------===//
-// Trait tests
-//===----------------------------------------------------------------------===//
-
-/// Determines whether @p region is an SSACFG region.
-///
-/// @pre    `region`
-[[nodiscard]] inline bool isSSACFG(Region* region)
-{
-    // NOTE: An operation that does not implement RegionKindInterface is
-    //       assumed to have only SSACFG regions per MLIR core!
-    auto iface =
-        llvm::dyn_cast_if_present<RegionKindInterface>(region->getParentOp());
-    if (!iface) return true;
-
-    return iface.getRegionKind(region->getRegionNumber()) == RegionKind::SSACFG;
-}
-/// Determines whether @p block is an SSACFG block.
-///
-/// @pre    `block`
-[[nodiscard]] inline bool isSSACFG(Block* block)
-{
-    return isSSACFG(block->getParent());
-}
-/// Determines whether @p op is inside an SSACFG block.
-///
-/// @pre    `op`
-[[nodiscard]] inline bool isSSACFG(Operation* op)
-{
-    return op->getBlock() && isSSACFG(op->getBlock());
-}
 
 //===----------------------------------------------------------------------===//
 // Concepts
