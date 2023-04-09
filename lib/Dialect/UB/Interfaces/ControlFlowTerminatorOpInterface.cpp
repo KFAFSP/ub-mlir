@@ -22,20 +22,12 @@ bool mlir::ub::control_flow_terminator_op_interface_defaults::
     return op->hasAttr(kUnreachableAttrName)
            || llvm::any_of(
                op->getOperands(),
-               static_cast<bool (*)(Value)>(&mlir::ub::isKnownUnreachable));
+               [](Value value) { return llvm::isa<UnreachableValue>(value); });
 }
 
 bool mlir::ub::control_flow_terminator_op_interface_defaults::markAsUnreachable(
     Operation* op)
 {
-    if (llvm::isa<BranchOpInterface>(op) && isSSACFG(op)) {
-        OpBuilder builder(op);
-        builder.create<UnreachableOp>(op->getLoc());
-        op->dropAllReferences();
-        op->erase();
-        return true;
-    }
-
     if (op->hasAttr(kUnreachableAttrName)) return false;
     op->setAttr(kUnreachableAttrName, UnitAttr::get(op->getContext()));
     return true;

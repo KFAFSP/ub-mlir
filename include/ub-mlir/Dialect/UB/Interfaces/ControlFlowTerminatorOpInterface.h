@@ -29,11 +29,8 @@ namespace mlir::ub::control_flow_terminator_op_interface_defaults {
 
 /// Marks @p op as known to be unreachable.
 ///
-/// This default implementation replaces @p op with an UnreachableOp if:
-///     - It is within an SSACFG block.
-///     - It is does not implement `RegionBranchTerminatorOpInterface`.
-///
-/// Otherwise, attaches the `ub.unreachable` discardable attribute.
+/// Attaches the `ub.unreachable` discardable attribute, and returns whether it
+/// was newly added.
 ///
 /// @pre    `llvm::isa<ControlFlowTerminatorOpInterface>(op)`
 bool markAsUnreachable(Operation* op);
@@ -59,18 +56,24 @@ namespace mlir::ub {
 /// This concept indicates the the given terminator passes control flow to some
 /// successor(s), leaving the current block. Therefore, it can be part of
 /// reachability analysis, and may be marked as unreachable.
-class ControlFlowTerminator : OpState {
+class ControlFlowTerminator : public OpState {
 public:
     /// @copydoc classof(Operation*)
-    static bool classof(BranchOpInterface) { return true; }
+    [[nodiscard]] static bool classof(BranchOpInterface) { return true; }
     /// @copydoc classof(Operation*)
-    static bool classof(RegionBranchTerminatorOpInterface) { return true; }
+    [[nodiscard]] static bool classof(RegionBranchTerminatorOpInterface)
+    {
+        return true;
+    }
     /// @copydoc classof(Operation*)
-    static bool classof(ControlFlowTerminatorOpInterface) { return true; }
+    [[nodiscard]] static bool classof(ControlFlowTerminatorOpInterface)
+    {
+        return true;
+    }
     /// Determines whether @p op is a ControlFlowTerminator.
     ///
     /// @pre    `op`
-    static bool classof(Operation* op)
+    [[nodiscard]] static bool classof(Operation* op)
     {
         return llvm::TypeSwitch<Operation*, bool>(op)
             .Case([](BranchOpInterface) { return true; })
@@ -99,9 +102,9 @@ public:
             : OpState(op)
     {}
 
-    /*implicit*/ operator bool() { return OpState::operator bool(); }
-
     /// Determines whether this terminator is known to be unreachable.
+    ///
+    /// @pre    `*this`
     [[nodiscard]] bool isKnownUnreachable()
     {
         return llvm::TypeSwitch<Operation*, bool>(*this)
@@ -116,7 +119,9 @@ public:
 
     /// Marks this terminator as known to be unreachable.
     ///
-    /// Returns @c true if any IR was modified.
+    /// Returns @c true if the op was modified.
+    ///
+    /// @pre    `*this`
     bool markAsUnreachable()
     {
         return llvm::TypeSwitch<Operation*, bool>(*this)

@@ -78,42 +78,39 @@ struct UnreachableIsNoReturn : RewritePattern {
     virtual LogicalResult
     matchAndRewrite(Operation* op, PatternRewriter &rewriter) const override
     {
-        const auto isConstant = [](Value value) {
-            if (auto def = value.getDefiningOp())
-                return def->hasTrait<OpTrait::ConstantLike>();
-            return false;
-        };
-        if (!isKnownUnreachable(op)
-            || !llvm::all_of(op->getOperands(), isConstant))
+        if (!isKnownUnreachable(op)) {
+            /// Only consider ops that are known to be unreachable.
             return failure();
+        }
 
-        if (op->getNumResults() == 0) {
-            if (&op->getBlock()->back() == op) {
-                // Operation is potentially a terminator, so just optimistically
-                // mark it as unreachable.
-                return success(markAsUnreachable(op));
+        if (auto term = llvm::dyn_cast<ControlFlowTerminator>(op)) {
+            // Canonicalize unreachable terminators, making blocks noreturn.
+            return success(markAsUnreachable(rewriter, term));
+        }
+
+        if (op->getNumResults() != 0) {
+            constexpr auto isConstant = [](Value value) {
+                if (auto def = value.getDefiningOp())
+                    return def->hasTrait<OpTrait::ConstantLike>();
+                return false;
+            };
+            if (!llvm::all_of(op->getOperands(), isConstant)) {
+                // Only consider ops that can't change their result in future.
+                return failure();
             }
 
-            // Operation is never scheduled.
-            rewriter.eraseOp(op);
-            return success();
+            // Attempt folding the operation away.
+            SmallVector<Value> foldResults;
+            if (succeeded(rewriter.tryFold(op, foldResults))) {
+                rewriter.replaceOp(op, foldResults);
+                return success();
+            }
+
+            makeResultsUnreachable(rewriter, op);
         }
 
-        // Attempt folding the operation away.
-        SmallVector<Value> foldResults;
-        if (succeeded(rewriter.tryFold(op, foldResults))) {
-            rewriter.replaceOp(op, foldResults);
-            return success();
-        }
-
-        // Replace the operation with never values.
-        rewriter.replaceOp(
-            op,
-            llvm::to_vector(
-                llvm::map_range(op->getResultTypes(), [&](Type type) {
-                    return rewriter.create<NeverOp>(op->getLoc(), type)
-                        .getResult();
-                })));
+        // The operation is never scheduled and has no more users.
+        rewriter.eraseOp(op);
         return success();
     }
 };
