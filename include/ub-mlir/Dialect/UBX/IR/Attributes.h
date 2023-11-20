@@ -16,7 +16,7 @@
 namespace mlir::ubx {
 
 /// Reference to a loaded dialect.
-using DialectRef = Dialect*;
+using DialectRef = Dialect *;
 
 /// Concept for an Attribute that stores an element-wise mask.
 ///
@@ -45,7 +45,7 @@ public:
     /// @pre    @p shape is static.
     /// @pre    @p values match @p shape , or indicate a splat.
     [[nodiscard]] static MaskAttr
-    get(MLIRContext* ctx, ArrayRef<int64_t> shape, ArrayRef<bool> values)
+    get(MLIRContext *ctx, ArrayRef<int64_t> shape, ArrayRef<bool> values)
     {
         const auto i1Ty = IntegerType::get(ctx, 1);
         const auto shapedTy = RankedTensorType::get(shape, i1Ty);
@@ -69,7 +69,7 @@ public:
     ///
     /// @pre    @p shape is static.
     [[nodiscard]] static MaskAttr
-    get(MLIRContext* ctx, ArrayRef<int64_t> shape, bool splatValue)
+    get(MLIRContext *ctx, ArrayRef<int64_t> shape, bool splatValue)
     {
         return get(ctx, shape, ArrayRef<bool>(splatValue));
     }

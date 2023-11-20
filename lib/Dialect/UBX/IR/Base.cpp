@@ -26,7 +26,7 @@ namespace {
 struct UBXInlinerInterface : public DialectInlinerInterface {
     using DialectInlinerInterface::DialectInlinerInterface;
 
-    bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
+    bool isLegalToInline(Operation *, Region *, bool, IRMapping &) const final
     {
         return true;
     }
@@ -50,20 +50,20 @@ struct UBXToLLVMInterface : public ConvertToLLVMPatternInterface {
 // UBXDialect
 //===----------------------------------------------------------------------===//
 
-Operation* UBXDialect::materializeConstant(
+Operation *UBXDialect::materializeConstant(
     OpBuilder &builder,
     Attribute value,
     Type type,
     Location location)
 {
-    return llvm::TypeSwitch<Attribute, Operation*>(value)
-        .Case([&](PoisonAttr attr) -> Operation* {
+    return llvm::TypeSwitch<Attribute, Operation *>(value)
+        .Case([&](PoisonAttr attr) -> Operation * {
             if (attr.getType() != type) return nullptr;
 
             // Fully-poisoned values are always materialized by our dialect.
             return builder.create<PoisonOp>(location, attr);
         })
-        .Case([&](PoisonedElementsAttr attr) -> Operation* {
+        .Case([&](PoisonedElementsAttr attr) -> Operation * {
             if (attr.getType() != type) return nullptr;
 
             // If the value is not poisoned, materialize natively.
@@ -80,7 +80,7 @@ Operation* UBXDialect::materializeConstant(
             return attr.getSourceDialect()
                 ->materializeConstant(builder, attr, type, location);
         })
-        .Default(static_cast<Operation*>(nullptr));
+        .Default(static_cast<Operation *>(nullptr));
 }
 
 void UBXDialect::initialize()
