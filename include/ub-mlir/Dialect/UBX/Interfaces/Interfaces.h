@@ -5,4 +5,5 @@
 
 #pragma once
 
+#include "ub-mlir/Dialect/UBX/Interfaces/FreezableTypeInterface.h"
 #include "ub-mlir/Dialect/UBX/Interfaces/PoisonAttrInterface.h"

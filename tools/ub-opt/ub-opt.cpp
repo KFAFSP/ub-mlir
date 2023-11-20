@@ -8,6 +8,7 @@
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
+#include "ub-mlir/Conversion/Passes.h"
 #include "ub-mlir/Dialect/UBX/IR/UBX.h"
 
 using namespace mlir;
@@ -29,6 +30,7 @@ int main(int argc, char* argv[])
 #endif
 
     registerAllPasses();
+    ub_mlir::registerConversionPasses();
 
     return asMainReturnCode(
         MlirOptMain(argc, argv, "ub-mlir optimizer driver\n", registry));

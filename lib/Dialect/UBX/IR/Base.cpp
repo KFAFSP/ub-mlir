@@ -5,6 +5,7 @@
 
 #include "ub-mlir/Dialect/UBX/IR/Base.h"
 
+#include "mlir/Conversion/ConvertToLLVM/ToLLVMInterface.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "ub-mlir/Dialect/UBX/IR/UBX.h"
@@ -28,6 +29,18 @@ struct UBXInlinerInterface : public DialectInlinerInterface {
     bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
     {
         return true;
+    }
+};
+
+struct UBXToLLVMInterface : public ConvertToLLVMPatternInterface {
+    using ConvertToLLVMPatternInterface::ConvertToLLVMPatternInterface;
+
+    virtual void populateConvertToLLVMConversionPatterns(
+        ConversionTarget &,
+        LLVMTypeConverter &typeConverter,
+        RewritePatternSet &patterns) const override
+    {
+        populateConvertUBXToLLVMPatterns(typeConverter, patterns);
     }
 };
 
@@ -78,4 +91,6 @@ void UBXDialect::initialize()
 
     // Implement the inliner interface.
     addInterfaces<UBXInlinerInterface>();
+    // Implement the LLVM conversion interface.
+    addInterfaces<UBXToLLVMInterface>();
 }

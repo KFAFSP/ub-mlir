@@ -7,6 +7,7 @@
 #ifndef UBX_INTERFACES
 #define UBX_INTERFACES
 
+include "ub-mlir/Dialect/UBX/Interfaces/FreezableTypeInterface.td"
 include "ub-mlir/Dialect/UBX/Interfaces/PoisonAttrInterface.td"
 
 #endif
