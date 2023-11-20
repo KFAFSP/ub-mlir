@@ -11,3 +11,11 @@
 func.func @poison() attributes { a0 = #poison_full, a1 = #poison_defined, a2 = #poison_partial } {
     return
 }
+
+#never = #ubx.never : i32
+
+// CHECK-LABEL: func.func @never(
+// CHECK-SAME: a0 = #ubx.never : i32
+func.func @never() attributes { a0 = #never } {
+    return
+}

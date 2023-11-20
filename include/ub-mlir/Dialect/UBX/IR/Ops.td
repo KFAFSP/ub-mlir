@@ -126,4 +126,56 @@ def UBX_FreezeOp : UBX_Op<
     }];
 }
 
+//===----------------------------------------------------------------------===//
+// NeverOp
+//===----------------------------------------------------------------------===//
+
+def UBX_NeverOp : UBX_ConstantOpBase<"never", [OpAsmOpInterface]> {
+    let summary = "Unreachable value constant operation";
+    let description = [{
+        The `never` operation never produces a result, i.e., is an operation
+        from which control flow never returns. It materializes an unreachable
+        value of any type. If no type is specified, the result type is `never`.
+
+        Syntax:
+
+        ```
+        never-op ::= `never` attr-dict (`:` type)?
+        ```
+
+        Examples:
+
+        ```
+        %0 = ubx.never
+        %1 = ubx.never : i64
+        ```
+    }];
+
+    let arguments = (ins);
+    let results = (outs AnyType:$result);
+
+    let builders = [
+        OpBuilder<(ins CArg<"Type", "{}">:$resultTy),
+        [{
+            if (!resultTy) resultTy = NeverType::get($_builder.getContext());
+            $_state.addTypes(resultTy);
+        }]>
+    ];
+    let skipDefaultBuilders = 1;
+
+    let assemblyFormat = "attr-dict custom<MaybeNever>(type($result))";
+
+    code extraClassDeclaration = [{
+    public:
+        //===--------------------------------------------------------------===//
+        // OpAsmOpInterface
+        //===--------------------------------------------------------------===//
+
+        void getAsmResultNames(function_ref<void(Value, StringRef)> setNameFn)
+        {
+            setNameFn(getResult(), "never");
+        }
+    }];
+}
+
 #endif

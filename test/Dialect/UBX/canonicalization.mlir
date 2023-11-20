@@ -45,3 +45,15 @@ func.func @freeze_poison() -> i64 {
     // CHECK: return %[[FROZEN]]
     return %0 : i64
 }
+
+//===----------------------------------------------------------------------===//
+// never
+//===----------------------------------------------------------------------===//
+
+// CHECK-LABEL: @never(
+func.func @never() -> !ubx.never {
+    // CHECK: %[[NEVER:.+]] = ubx.never
+    %never = ubx.never : !ubx.never
+    // CHECK: return %[[NEVER]]
+    return %never : !ubx.never
+}

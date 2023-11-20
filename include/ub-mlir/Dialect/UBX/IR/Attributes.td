@@ -195,4 +195,44 @@ def UBX_PoisonedElementsAttr : UBX_Attr<
     }];
 }
 
+//===----------------------------------------------------------------------===//
+// NeverAttr
+//===----------------------------------------------------------------------===//
+
+def UBX_NeverAttr : UBX_Attr<"Never", [TypedAttrInterface]> {
+    let mnemonic = "never";
+    let summary = "Unreachable value attribute";
+    let description = [{
+        The `never` attribute represents a compile-time proposition that a value
+        will never become available, i.e., is the result of an unreachable
+        operation.
+
+        Syntax:
+
+        ```
+        never-attr ::= `:` type
+        ```
+
+        Example:
+
+        ```
+        #ubx.never : i16
+        ```
+    }];
+
+    let parameters = (ins AttributeSelfTypeParameter<"">:$type);
+
+    let builders = [
+        AttrBuilder<(ins),
+        [{
+            return $_get($_ctxt, NeverType::get($_ctxt));
+        }]>,
+        AttrBuilderWithInferredContext<(ins "Type":$type),
+        [{
+            return $_get(type.getContext(), type);
+        }]>];
+
+    let assemblyFormat = "";
+}
+
 #endif

@@ -12,6 +12,29 @@
 using namespace mlir;
 using namespace mlir::ubx;
 
+//===----------------------------------------------------------------------===//
+// Custom directives
+//===----------------------------------------------------------------------===//
+
+/// Prints @p type if it is not NeverType.
+static void printMaybeNever(OpAsmPrinter &p, Operation*, Type type)
+{
+    if (llvm::isa<NeverType>(type)) return;
+
+    p << ": " << type;
+}
+
+/// Parses a @p type or NeverType.
+static ParseResult parseMaybeNever(OpAsmParser &p, Type &type)
+{
+    if (p.parseOptionalColon()) {
+        type = NeverType::get(p.getContext());
+        return success();
+    }
+
+    return p.parseType(type);
+}
+
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_OP_CLASSES
@@ -131,6 +154,15 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
 
     // Fold to the input value, which is known to be well-defined.
     return getOperand();
+}
+
+//===----------------------------------------------------------------------===//
+// NeverOp
+//===----------------------------------------------------------------------===//
+
+OpFoldResult NeverOp::fold(NeverOp::FoldAdaptor)
+{
+    return NeverAttr::get(getType());
 }
 
 //===----------------------------------------------------------------------===//

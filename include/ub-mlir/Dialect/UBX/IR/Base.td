@@ -23,6 +23,7 @@ def UBX_Dialect : Dialect {
 
     let hasConstantMaterializer = 1;
     let useDefaultAttributePrinterParser = 1;
+    let useDefaultTypePrinterParser = 1;
 
     code extraClassDeclaration = [{
     private:
