@@ -1,24 +1,24 @@
-/// Implements the UB dialect attributes.
+/// Implements the UBX dialect attributes.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 
-#include "ub-mlir/Dialect/UB/IR/Attributes.h"
+#include "ub-mlir/Dialect/UBX/IR/Attributes.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
-#include "ub-mlir/Dialect/UB/IR/UB.h"
+#include "ub-mlir/Dialect/UBX/IR/UBX.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
-using namespace mlir::ub;
+using namespace mlir::ubx;
 
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_ATTRDEF_CLASSES
-#include "ub-mlir/Dialect/UB/IR/Attributes.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Attributes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -127,13 +127,13 @@ LogicalResult PoisonedElementsAttr::verify(
 }
 
 //===----------------------------------------------------------------------===//
-// UBDialect
+// UBXDialect
 //===----------------------------------------------------------------------===//
 
-void UBDialect::registerAttributes()
+void UBXDialect::registerAttributes()
 {
     addAttributes<
 #define GET_ATTRDEF_LIST
-#include "ub-mlir/Dialect/UB/IR/Attributes.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Attributes.cpp.inc"
         >();
 }

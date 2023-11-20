@@ -7,7 +7,7 @@
 // CHECK-LABEL: @poison_unpoison(
 func.func @poison_unpoison() -> tensor<1xi64> {
     // CHECK-DAG: %[[CST1:.+]] = arith.constant dense<1> : tensor<1xi64>
-    %0 = ub.poison #ub.poisoned_elements<arith(dense<1>)[dense<false>]> : tensor<1xi64>
+    %0 = ubx.poison #ubx.poisoned_elements<arith(dense<1>)[dense<false>]> : tensor<1xi64>
     // CHECK: return %[[CST1]]
     return %0 : tensor<1xi64>
 }
@@ -19,10 +19,10 @@ func.func @poison_unpoison() -> tensor<1xi64> {
 // CHECK-LABEL: @freeze_chain(
 // CHECK-SAME: %[[ARG0:.+]]: i64
 func.func @freeze_chain(%arg0: i64) -> i64 {
-    %0 = ub.freeze %arg0 : i64
-    // CHECK-DAG: %[[FREEZE:.+]] = ub.freeze %[[ARG0]]
-    %1 = ub.freeze %0 : i64
-    %2 = ub.freeze %1 : i64
+    %0 = ubx.freeze %arg0 : i64
+    // CHECK-DAG: %[[FREEZE:.+]] = ubx.freeze %[[ARG0]]
+    %1 = ubx.freeze %0 : i64
+    %2 = ubx.freeze %1 : i64
     // CHECK: return %[[FREEZE]]
     return %2 : i64
 }
@@ -31,17 +31,17 @@ func.func @freeze_chain(%arg0: i64) -> i64 {
 func.func @freeze_well_defined() -> i64 {
     // CHECK-DAG: %[[CST1:.+]] = arith.constant 1 : i64
     %cst1 = arith.constant 1 : i64
-    %0 = ub.freeze %cst1 : i64
+    %0 = ubx.freeze %cst1 : i64
     // CHECK: return %[[CST1]]
     return %0 : i64
 }
 
 // CHECK-LABEL: @freeze_poison(
 func.func @freeze_poison() -> i64 {
-    // CHECK-DAG: %[[POISON:.+]] = ub.poison : i64
-    %cst1 = ub.poison : i64
-    // CHECK: %[[FROZEN:.+]] = ub.freeze %[[POISON]]
-    %0 = ub.freeze %cst1 : i64
+    // CHECK-DAG: %[[POISON:.+]] = ubx.poison : i64
+    %cst1 = ubx.poison : i64
+    // CHECK: %[[FROZEN:.+]] = ubx.freeze %[[POISON]]
+    %0 = ubx.freeze %cst1 : i64
     // CHECK: return %[[FROZEN]]
     return %0 : i64
 }

@@ -1,28 +1,28 @@
-/// Implements the UB dialect base.
+/// Implements the UBX dialect base.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 
-#include "ub-mlir/Dialect/UB/IR/Base.h"
+#include "ub-mlir/Dialect/UBX/IR/Base.h"
 
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "ub-mlir/Dialect/UB/IR/UB.h"
+#include "ub-mlir/Dialect/UBX/IR/UBX.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
-using namespace mlir::ub;
+using namespace mlir::ubx;
 
 //===- Generated implementation -------------------------------------------===//
 
-#include "ub-mlir/Dialect/UB/IR/Base.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Base.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
 namespace {
 
-struct UBInlinerInterface : public DialectInlinerInterface {
+struct UBXInlinerInterface : public DialectInlinerInterface {
     using DialectInlinerInterface::DialectInlinerInterface;
 
     bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
@@ -34,10 +34,10 @@ struct UBInlinerInterface : public DialectInlinerInterface {
 } // namespace
 
 //===----------------------------------------------------------------------===//
-// UBDialect
+// UBXDialect
 //===----------------------------------------------------------------------===//
 
-Operation* UBDialect::materializeConstant(
+Operation* UBXDialect::materializeConstant(
     OpBuilder &builder,
     Attribute value,
     Type type,
@@ -70,12 +70,12 @@ Operation* UBDialect::materializeConstant(
         .Default(static_cast<Operation*>(nullptr));
 }
 
-void UBDialect::initialize()
+void UBXDialect::initialize()
 {
     registerAttributes();
     registerOps();
     registerTypes();
 
     // Implement the inliner interface.
-    addInterfaces<UBInlinerInterface>();
+    addInterfaces<UBXInlinerInterface>();
 }

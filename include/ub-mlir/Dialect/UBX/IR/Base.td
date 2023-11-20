@@ -1,19 +1,19 @@
 //===- Base.td ---------------------------------------------*- tablegen -*-===//
 //
-// This is the definitions file for the UB dialect base.
+// This is the definitions file for the UBX dialect base.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef UB_BASE
-#define UB_BASE
+#ifndef UBX_BASE
+#define UBX_BASE
 
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/BuiltinTypes.td"
 include "mlir/IR/OpBase.td"
 
-def UB_Dialect : Dialect {
-    let name = "ub";
-    let cppNamespace = "::mlir::ub";
+def UBX_Dialect : Dialect {
+    let name = "ubx";
+    let cppNamespace = "::mlir::ubx";
 
     let summary = "The undefined behavior dialect";
     let description = [{
@@ -24,10 +24,6 @@ def UB_Dialect : Dialect {
     let hasConstantMaterializer = 1;
     let useDefaultAttributePrinterParser = 1;
 
-    let dependentDialects = [
-        "LLVM::LLVMDialect"
-    ];
-
     code extraClassDeclaration = [{
     private:
         void registerAttributes();
@@ -37,13 +33,13 @@ def UB_Dialect : Dialect {
 }
 
 // Template for attributes.
-class UB_Attr<string name, list<Trait> traits = []>
-        : AttrDef<UB_Dialect, name, traits>;
+class UBX_Attr<string name, list<Trait> traits = []>
+        : AttrDef<UBX_Dialect, name, traits>;
 // Template for ops.
-class UB_Op<string mnemonic, list<Trait> traits = []>
-        : Op<UB_Dialect, mnemonic, traits>;
+class UBX_Op<string mnemonic, list<Trait> traits = []>
+        : Op<UBX_Dialect, mnemonic, traits>;
 // Template for types.
-class UB_Type<string name, list<Trait> traits = []>
-        : TypeDef<UB_Dialect, name, traits>;
+class UBX_Type<string name, list<Trait> traits = []>
+        : TypeDef<UBX_Dialect, name, traits>;
 
 #endif

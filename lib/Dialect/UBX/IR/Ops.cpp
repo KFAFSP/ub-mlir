@@ -1,21 +1,21 @@
-/// Implements the UB dialect ops.
+/// Implements the UBX dialect ops.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 
-#include "ub-mlir/Dialect/UB/IR/Ops.h"
+#include "ub-mlir/Dialect/UBX/IR/Ops.h"
 
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
-#include "ub-mlir/Dialect/UB/IR/UB.h"
+#include "ub-mlir/Dialect/UBX/IR/UBX.h"
 
 using namespace mlir;
-using namespace mlir::ub;
+using namespace mlir::ubx;
 
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "ub-mlir/Dialect/UB/IR/Ops.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Ops.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -55,7 +55,7 @@ ParseResult PoisonOp::parse(OpAsmParser &p, OperationState &result)
 
 LogicalResult PoisonOp::inferReturnTypes(
     MLIRContext*,
-    Optional<Location>,
+    std::optional<Location>,
     ValueRange,
     DictionaryAttr attributes,
     OpaqueProperties,
@@ -131,13 +131,13 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
 }
 
 //===----------------------------------------------------------------------===//
-// UBDialect
+// UBXDialect
 //===----------------------------------------------------------------------===//
 
-void UBDialect::registerOps()
+void UBXDialect::registerOps()
 {
     addOperations<
 #define GET_OP_LIST
-#include "ub-mlir/Dialect/UB/IR/Ops.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Ops.cpp.inc"
         >();
 }

@@ -8,7 +8,7 @@
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
-#include "ub-mlir/Dialect/UB/IR/UB.h"
+#include "ub-mlir/Dialect/UBX/IR/UBX.h"
 
 using namespace mlir;
 
@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
     DialectRegistry registry;
     registerAllDialects(registry);
 
-    registry.insert<ub::UBDialect>();
+    registry.insert<ubx::UBXDialect>();
 #if MLIR_INCLUDE_TESTS
     test::registerTestDialect(registry);
 #endif

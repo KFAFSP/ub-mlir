@@ -1,20 +1,20 @@
 //===- Ops.td ----------------------------------------------*- tablegen -*-===//
 //
-// This is the definitions file for the UB dialect ops.
+// This is the definitions file for the UBX dialect ops.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef UB_OPS
-#define UB_OPS
+#ifndef UBX_OPS
+#define UBX_OPS
 
-include "ub-mlir/Dialect/UB/IR/Types.td"
+include "ub-mlir/Dialect/UBX/IR/Types.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 /// Template for constant operations.
-class UB_ConstantOpBase<string mnemonic, list<Trait> traits = []>
-        : UB_Op<mnemonic, traits # [ConstantLike, Pure]>
+class UBX_ConstantOpBase<string mnemonic, list<Trait> traits = []>
+        : UBX_Op<mnemonic, traits # [ConstantLike, Pure]>
 {
     let results = (outs AnyType:$result);
 
@@ -25,8 +25,8 @@ class UB_ConstantOpBase<string mnemonic, list<Trait> traits = []>
 // PoisonOp
 //===----------------------------------------------------------------------===//
 
-def UB_PoisonOp
-        : UB_ConstantOpBase<
+def UBX_PoisonOp
+        : UBX_ConstantOpBase<
             "poison",
             [
                 OpAsmOpInterface,
@@ -50,9 +50,9 @@ def UB_PoisonOp
 
         ```
         // Short form
-        %0 = ub.poison : tensor<3xi16>
+        %0 = ubx.poison : tensor<3xi16>
         // Long form (partially poisoned)
-        %1 = ub.poison #ub.poisoned_elements<arith(dense<1>)[dense<[false, true, false]>]> : tensor<3xi64>
+        %1 = ubx.poison #ub.poisoned_elements<arith(dense<1>)[dense<[false, true, false]>]> : tensor<3xi64>
         ```
     }];
 
@@ -80,8 +80,8 @@ def UB_PoisonOp
 // FreezeOp
 //===----------------------------------------------------------------------===//
 
-def UB_FreezeOp
-        : UB_Op<
+def UBX_FreezeOp
+        : UBX_Op<
             "freeze",
             [
                 Pure,
@@ -104,8 +104,8 @@ def UB_FreezeOp
         Examples:
 
         ```
-        %psn = ub.poison : tensor<3xi16>
-        %0 = ub.freeze %psn : tensor<3xi16>
+        %psn = ubx.poison : tensor<3xi16>
+        %0 = ubx.freeze %psn : tensor<3xi16>
         ```
     }];
 

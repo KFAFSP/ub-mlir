@@ -1,8 +1,8 @@
-/// Convenience include for the UB dialect.
+/// Convenience include for the UBX dialect.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 
 #pragma once
 
-#include "ub-mlir/Dialect/UB/IR/Ops.h"
+#include "ub-mlir/Dialect/UBX/IR/Ops.h"

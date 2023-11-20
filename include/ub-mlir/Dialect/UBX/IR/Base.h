@@ -1,4 +1,4 @@
-/// Declaration of the UB dialect base.
+/// Declaration of the UBX dialect base.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
@@ -14,11 +14,11 @@
 
 //===- Generated includes -------------------------------------------------===//
 
-#include "ub-mlir/Dialect/UB/IR/Base.h.inc"
+#include "ub-mlir/Dialect/UBX/IR/Base.h.inc"
 
 //===----------------------------------------------------------------------===//
 
-namespace mlir::ub {
+namespace mlir::ubx {
 
 /// Concept for an MLIR Type constraint.
 template<class T>
@@ -28,4 +28,4 @@ concept TypeConstraint = std::is_base_of_v<Type, T>;
 template<class T>
 concept AttrConstraint = std::is_base_of_v<Attribute, T>;
 
-} // namespace mlir::ub
+} // namespace mlir::ubx

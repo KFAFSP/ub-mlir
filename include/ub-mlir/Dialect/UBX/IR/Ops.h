@@ -1,4 +1,4 @@
-/// Declaration of the UB dialect ops.
+/// Declaration of the UBX dialect ops.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
@@ -10,11 +10,11 @@
 #include "mlir/Interfaces/CastInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "ub-mlir/Dialect/UB/IR/Types.h"
+#include "ub-mlir/Dialect/UBX/IR/Types.h"
 
 //===- Generated includes -------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "ub-mlir/Dialect/UB/IR/Ops.h.inc"
+#include "ub-mlir/Dialect/UBX/IR/Ops.h.inc"
 
 //===----------------------------------------------------------------------===//

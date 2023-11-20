@@ -1,13 +1,13 @@
 //===- Types.td --------------------------------------------*- tablegen -*-===//
 //
-// This is the definitions file for the UB dialect types.
+// This is the definitions file for the UBX dialect types.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef UB_TYPES
-#define UB_TYPES
+#ifndef UBX_TYPES
+#define UBX_TYPES
 
-include "ub-mlir/Dialect/UB/IR/Attributes.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
+include "ub-mlir/Dialect/UBX/IR/Attributes.td"
 
 #endif

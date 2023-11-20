@@ -1,4 +1,4 @@
-/// Declaration of the UB dialect attributes.
+/// Declaration of the UBX dialect attributes.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
@@ -8,11 +8,11 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/TypeUtilities.h"
-#include "ub-mlir/Dialect/UB/IR/Base.h"
+#include "ub-mlir/Dialect/UBX/IR/Base.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 
-namespace mlir::ub {
+namespace mlir::ubx {
 
 /// Reference to a loaded dialect.
 using DialectRef = Dialect*;
@@ -226,16 +226,16 @@ try_value_begin(ElementsAttr elements, MaskAttr mask)
 
 } // namespace detail
 
-} // namespace mlir::ub
+} // namespace mlir::ubx
 
 //===- Generated includes -------------------------------------------------===//
 
 #define GET_ATTRDEF_CLASSES
-#include "ub-mlir/Dialect/UB/IR/Attributes.h.inc"
+#include "ub-mlir/Dialect/UBX/IR/Attributes.h.inc"
 
 //===----------------------------------------------------------------------===//
 
-namespace mlir::ub {
+namespace mlir::ubx {
 
 /// Concept for an Attribute that holds some poisoned value.
 ///
@@ -677,4 +677,4 @@ public:
     }
 };
 
-} // namespace mlir::ub
+} // namespace mlir::ubx

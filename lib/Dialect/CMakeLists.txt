@@ -1,1 +1,1 @@
-add_subdirectory(UB)
+add_subdirectory(UBX)

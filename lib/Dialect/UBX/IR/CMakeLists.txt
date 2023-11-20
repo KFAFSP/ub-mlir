@@ -1,11 +1,11 @@
-add_mlir_dialect_library(UBDialect
+add_mlir_dialect_library(UBXDialect
         Attributes.cpp
         Base.cpp
         Ops.cpp
         Types.cpp
 
     DEPENDS
-        UBIncGen
+        UBXIncGen
 
     LINK_LIBS PUBLIC
         MLIRIR

@@ -1,9 +1,9 @@
-/// Implements the UB dialect types.
+/// Implements the UBX dialect types.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 
-#include "ub-mlir/Dialect/UB/IR/Types.h"
+#include "ub-mlir/Dialect/UBX/IR/Types.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -13,23 +13,23 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
-using namespace mlir::ub;
+using namespace mlir::ubx;
 
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "ub-mlir/Dialect/UB/IR/Types.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Types.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// UBDialect
+// UBXDialect
 //===----------------------------------------------------------------------===//
 
-void UBDialect::registerTypes()
+void UBXDialect::registerTypes()
 {
     addTypes<
 #define GET_TYPEDEF_LIST
-#include "ub-mlir/Dialect/UB/IR/Types.cpp.inc"
+#include "ub-mlir/Dialect/UBX/IR/Types.cpp.inc"
         >();
 }

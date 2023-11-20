@@ -1,19 +1,19 @@
 //===- Attributes.td ---------------------------------------*- tablegen -*-===//
 //
-// This is the definitions file for the UB dialect attributes.
+// This is the definitions file for the UBX dialect attributes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef UB_ATTRIBUTES
-#define UB_ATTRIBUTES
+#ifndef UBX_ATTRIBUTES
+#define UBX_ATTRIBUTES
 
-include "ub-mlir/Dialect/UB/IR/Base.td"
+include "ub-mlir/Dialect/UBX/IR/Base.td"
 
 //===----------------------------------------------------------------------===//
 // PoisonAttr
 //===----------------------------------------------------------------------===//
 
-def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
+def UBX_PoisonAttr : UBX_Attr<"Poison", [TypedAttrInterface]> {
     let mnemonic = "poison";
     let summary = "";
     let description = [{
@@ -35,8 +35,8 @@ def UB_PoisonAttr : UB_Attr<"Poison", [TypedAttrInterface]> {
 // PoisonedElementsAttr
 //===----------------------------------------------------------------------===//
 
-def UB_PoisonedElementsAttr
-        : UB_Attr<"PoisonedElements", [TypedAttrInterface]> {
+def UBX_PoisonedElementsAttr
+        : UBX_Attr<"PoisonedElements", [TypedAttrInterface]> {
     let mnemonic = "poisoned_elements";
     let summary = "";
     let description = [{
