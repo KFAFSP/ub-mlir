@@ -1,4 +1,4 @@
-/// Implements the LowerFunnelShiftPass.
+/// Implements the FreezePass.
 ///
 /// @file
 /// @author     Karl F. A. Friebel (karl.friebel@tu-dresden.de)
