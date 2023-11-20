@@ -19,7 +19,7 @@ void registerTestDialect(DialectRegistry &);
 } // namespace test
 #endif
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     DialectRegistry registry;
     registerAllDialects(registry);
@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 #endif
 
     registerAllPasses();
+    ubx::registerUBXPasses();
     ub_mlir::registerConversionPasses();
 
     return asMainReturnCode(

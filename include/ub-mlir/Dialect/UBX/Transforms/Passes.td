@@ -37,4 +37,52 @@ def Freeze : Pass<"ubx-freeze"> {
     let constructor = "::mlir::ubx::createFreezePass()";
 }
 
+def PropagateNever : Pass<"ubx-propagate-never"> {
+    let summary = "Propagates `#ubx.never` values across SSA dependencies";
+    let description = [{
+        An `#ubx.never` values indicates the result of an operation that is
+        statically known to never be executed. Therefore, operations that
+        depend on such values are transitively unreachable.
+
+        When an unreachable operation becomes no-return, it propagates a
+        never value to all of its results. This carries the unreachability in
+        the IR, through SSA dependencies. This pass performs such propagation in
+        the following cicrumstances:
+
+        - Through operations
+
+          According to the `through-ops` option, any operation will propagate
+          never that matches the specified filter:
+
+          - `always` affects all operations.
+
+          - `pure` affects only pure operations (i.e., that have no memory
+             effects and are speculatable).
+
+          - `constexpr` affects only `pure` operations that have only constant
+            operands but cannot be folded. This is the default.
+
+        TODO: Propagate based on NeverType
+        TODO: Propagate using RegionBranchOpInterface
+        TODO: Propagate through CallOpInterface
+        TODO: Propagate to private FunctionOpInterface return type
+    }];
+
+    let options = [
+        Option<
+            "throughOps",
+            "through-ops",
+            "::mlir::ubx::OpNeverPropagation",
+	        /*default=*/"::mlir::ubx::OpNeverPropagation::Constexpr",
+	        "Propagate never values through operations",
+	        [{::llvm::cl::values(
+                clEnumValN(::mlir::ubx::OpNeverPropagation::Never, "never", "Never"),
+                clEnumValN(::mlir::ubx::OpNeverPropagation::Constexpr, "constexpr", "When unfoldable constant expression (Default)"),
+                clEnumValN(::mlir::ubx::OpNeverPropagation::Pure, "pure", "When pure"),
+                clEnumValN(::mlir::ubx::OpNeverPropagation::Always, "always", "Always")
+            )}]>];
+
+    let constructor = "::mlir::ubx::createPropagateNeverPass()";
+}
+
 #endif

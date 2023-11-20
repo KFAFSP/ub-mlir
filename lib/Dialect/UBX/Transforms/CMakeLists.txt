@@ -1,5 +1,6 @@
 add_mlir_library(UBXTransforms
         Freeze.cpp
+        PropagateNever.cpp
 
     ENABLE_AGGREGATION
     DEPENDS
