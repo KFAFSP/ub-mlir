@@ -9,6 +9,7 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "ub-mlir/Dialect/UBX/IR/Base.h"
+#include "ub-mlir/Dialect/UBX/Interfaces/PoisonAttrInterface.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 
@@ -236,49 +237,6 @@ try_value_begin(ElementsAttr elements, MaskAttr mask)
 //===----------------------------------------------------------------------===//
 
 namespace mlir::ubx {
-
-/// Concept for an Attribute that holds some poisoned value.
-///
-/// Satisfied by a PoisonAttr or a poisoned PoisonedElementsAttr.
-class PoisonedAttr : public Attribute {
-public:
-    /// @copydoc classof(Attribute)
-    [[nodiscard]] static bool classof(PoisonAttr) { return true; }
-    /// @copydoc classof(Attribute)
-    [[nodiscard]] static bool classof(PoisonedElementsAttr attr)
-    {
-        return attr.isPoisoned();
-    }
-    /// Determines whether @p attr is a PoisonedAttr.
-    ///
-    /// @pre    `attr`
-    [[nodiscard]] static bool classof(Attribute attr)
-    {
-        return llvm::TypeSwitch<Attribute, bool>(attr)
-            .Case([](PoisonAttr) { return true; })
-            .Case([](PoisonedElementsAttr attr) { return classof(attr); })
-            .Default([](auto) { return false; });
-    }
-
-    using Attribute::Attribute;
-
-    /// Initializes a PoisonedAttr from @p attr .
-    ///
-    /// @pre    `attr`
-    /*implicit*/ PoisonedAttr(PoisonAttr attr)
-            : Attribute(static_cast<Attribute>(attr).getImpl())
-    {}
-
-    /// Gets the value type.
-    ///
-    /// @pre    `*this`
-    [[nodiscard]] Type getType() const
-    {
-        return llvm::TypeSwitch<Attribute, Type>(*this)
-            .Case([](PoisonAttr attr) { return attr.getType(); })
-            .Case([](PoisonedElementsAttr attr) { return attr.getType(); });
-    }
-};
 
 /// Concept for an Attribute that is either an ElementsAttr or poison.
 ///
@@ -517,9 +475,13 @@ using maybe_optional_t = typename maybe_optional<T>::type;
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
 template<AttrConstraint ValueAttr, TypeConstraint Type = mlir::Type>
 class ValueOrPoisonAttr : public Attribute {
+    // clang-format off
+
     static_assert(
-        requires(ValueAttr valueAttr) { valueAttr.getType(); },
-        "ValueAttr must have a ::getType() method.");
+        requires(ValueAttr attr) { attr.getType() -> TypeConstraint; },
+        "ValueAttr must be a TypedAttr.");
+
+    // clang-format on
 
 public:
     /// The underlying value attribute value type, or void.
@@ -618,9 +580,13 @@ public:
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
 template<AttrConstraint ValueAttr, TypeConstraint ElementType>
 class ValueOrPoisonLikeAttr : public Attribute {
+    // clang-format off
+
     static_assert(
-        requires(ValueAttr valueAttr) { valueAttr.getType(); },
-        "ValueAttr must have a ::getType() method.");
+        requires(ValueAttr attr) { attr.getType() -> TypeConstraint; },
+        "ValueAttr must be a TypedAttr.");
+
+    // clang-format on
 
 public:
     /// The compatible ValueOrPoisonAttr.

@@ -126,6 +126,20 @@ LogicalResult PoisonedElementsAttr::verify(
     return success();
 }
 
+Value PoisonedElementsAttr::freeze(OpBuilder &builder, Location loc) const
+{
+    // Try materializing the value using the source dialect.
+    if (auto op =
+            getSourceDialect()
+                ->materializeConstant(builder, getElements(), getType(), loc)) {
+        assert(op->getNumResults() == 1);
+        assert(op->getResult(0).getType() == getType());
+        return op->getResult(0);
+    }
+
+    return {};
+}
+
 //===----------------------------------------------------------------------===//
 // UBXDialect
 //===----------------------------------------------------------------------===//

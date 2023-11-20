@@ -12,12 +12,6 @@
 
 #include <string_view>
 
-//===- Generated includes -------------------------------------------------===//
-
-#include "ub-mlir/Dialect/UBX/IR/Base.h.inc"
-
-//===----------------------------------------------------------------------===//
-
 namespace mlir::ubx {
 
 /// Concept for an MLIR Type constraint.
@@ -29,3 +23,9 @@ template<class T>
 concept AttrConstraint = std::is_base_of_v<Attribute, T>;
 
 } // namespace mlir::ubx
+
+//===- Generated includes -------------------------------------------------===//
+
+#include "ub-mlir/Dialect/UBX/IR/Base.h.inc"
+
+//===----------------------------------------------------------------------===//

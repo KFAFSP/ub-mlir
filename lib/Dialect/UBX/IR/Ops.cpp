@@ -78,21 +78,16 @@ struct Unpoison : OpRewritePattern<PoisonOp> {
     matchAndRewrite(PoisonOp op, PatternRewriter &rewriter) const override
     {
         // Only applies to well-defined elements.
-        const auto elementsAttr =
-            llvm::dyn_cast<PoisonedElementsAttr>(op.getValue());
-        if (!elementsAttr || elementsAttr.isPoisoned()) return failure();
+        if (op.getValue().isPoisoned()) return failure();
 
-        // Delegate to the source dialect constant materializer.
-        auto srcOp = elementsAttr.getSourceDialect()->materializeConstant(
-            rewriter,
-            elementsAttr.getElements(),
-            elementsAttr.getType(),
-            op.getLoc());
-        if (!srcOp) return failure();
+        // Try the freeze method of the PoisonAttrInterface implementation.
+        OpBuilder builder(op);
+        if (auto frozen = op.getValue().freeze(builder, op.getLoc())) {
+            rewriter.replaceOp(op, frozen);
+            return success();
+        }
 
-        // Replace with source materialization.
-        rewriter.replaceOp(op, srcOp->getResults());
-        return success();
+        return failure();
     }
 };
 
@@ -122,11 +117,19 @@ OpFoldResult FreezeOp::fold(FreezeOp::FoldAdaptor adaptor)
     // Do not fold if the input is not constant.
     if (!adaptor.getOperand()) return {};
 
-    // Do not fold if the input is poisoned in any way.
-    if (llvm::isa<PoisonedAttr>(adaptor.getOperand())) return {};
+    if (auto iface = llvm::dyn_cast_if_present<PoisonAttrInterface>(
+            adaptor.getOperand())) {
+        if (iface.isPoisoned()) {
+            // Do not fold poisoned values! Even though there is a freeze method
+            // on the interface, it loses information, and should only be done
+            // when all else has failed.
+            return {};
+        }
 
-    // Fold to the non-poisoned operand value, but not the constant value, to
-    // avoid calling our own dialect materializer on it.
+        // Fall through here to fold away the freeze operation.
+    }
+
+    // Fold to the input value, which is known to be well-defined.
     return getOperand();
 }
 

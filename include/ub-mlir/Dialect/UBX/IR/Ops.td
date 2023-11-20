@@ -25,14 +25,13 @@ class UBX_ConstantOpBase<string mnemonic, list<Trait> traits = []>
 // PoisonOp
 //===----------------------------------------------------------------------===//
 
-def UBX_PoisonOp
-        : UBX_ConstantOpBase<
-            "poison",
-            [
-                OpAsmOpInterface,
-                DeclareOpInterfaceMethods<
-                    InferTypeOpInterface,
-                    ["inferReturnTypes"]>]> {
+def UBX_PoisonOp : UBX_ConstantOpBase<
+        "poison",
+        [
+            OpAsmOpInterface,
+            DeclareOpInterfaceMethods<
+                InferTypeOpInterface,
+                ["inferReturnTypes"]>]> {
     let summary = "Poisoned constant operation";
     let description = [{
         The `poison` operation materializes a compile-time constant value that
@@ -56,7 +55,7 @@ def UBX_PoisonOp
         ```
     }];
 
-    let arguments = (ins AnyAttr:$value);
+    let arguments = (ins UBX_PoisonAttrInterface:$value);
 
     // NOTE: The assemblyFormat does not want to work correctly...
     let hasCustomAssemblyFormat = 1;
@@ -71,7 +70,7 @@ def UBX_PoisonOp
 
         void getAsmResultNames(function_ref<void(Value, StringRef)> setNameFn)
         {
-            setNameFn(getResult(), "psn");
+            setNameFn(getResult(), "poison");
         }
     }];
 }
@@ -80,14 +79,12 @@ def UBX_PoisonOp
 // FreezeOp
 //===----------------------------------------------------------------------===//
 
-def UBX_FreezeOp
-        : UBX_Op<
-            "freeze",
-            [
-                Pure,
-                SameOperandsAndResultType,
-                OpAsmOpInterface]
-                # ElementwiseMappable.traits> {
+def UBX_FreezeOp : UBX_Op<
+        "freeze",
+        [
+            Pure,
+            SameOperandsAndResultType,
+            OpAsmOpInterface] # ElementwiseMappable.traits> {
     let summary = "Concretization of a poisoned value";
     let description = [{
         The `freeze` operation concretizes a potentially poisoned value. If the
@@ -104,8 +101,8 @@ def UBX_FreezeOp
         Examples:
 
         ```
-        %psn = ubx.poison : tensor<3xi16>
-        %0 = ubx.freeze %psn : tensor<3xi16>
+        %poison = ubx.poison : tensor<3xi16>
+        %0 = ubx.freeze %poison : tensor<3xi16>
         ```
     }];
 
@@ -124,7 +121,7 @@ def UBX_FreezeOp
 
         void getAsmResultNames(function_ref<void(Value, StringRef)> setNameFn)
         {
-            setNameFn(getResult(), "fzn");
+            setNameFn(getResult(), "frozen");
         }
     }];
 }
