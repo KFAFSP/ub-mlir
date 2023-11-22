@@ -16,7 +16,7 @@
 namespace mlir::ubx {
 
 /// Reference to a loaded dialect.
-using DialectRef = Dialect*;
+using DialectRef = Dialect *;
 
 /// Concept for an Attribute that stores an element-wise mask.
 ///
@@ -45,7 +45,7 @@ public:
     /// @pre    @p shape is static.
     /// @pre    @p values match @p shape , or indicate a splat.
     [[nodiscard]] static MaskAttr
-    get(MLIRContext* ctx, ArrayRef<int64_t> shape, ArrayRef<bool> values)
+    get(MLIRContext *ctx, ArrayRef<int64_t> shape, ArrayRef<bool> values)
     {
         const auto i1Ty = IntegerType::get(ctx, 1);
         const auto shapedTy = RankedTensorType::get(shape, i1Ty);
@@ -69,7 +69,7 @@ public:
     ///
     /// @pre    @p shape is static.
     [[nodiscard]] static MaskAttr
-    get(MLIRContext* ctx, ArrayRef<int64_t> shape, bool splatValue)
+    get(MLIRContext *ctx, ArrayRef<int64_t> shape, bool splatValue)
     {
         return get(ctx, shape, ArrayRef<bool>(splatValue));
     }
@@ -277,8 +277,6 @@ public:
 
     using Attribute::Attribute;
 
-    // clang-format off
-
     /// Initializes an ElementsOrPoisonAttr from @p attr .
     ///
     /// Only participates in overload resolution if @p ElementType is a
@@ -300,8 +298,6 @@ public:
         requires(std::is_same_v<ElementType, Type>)
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
-
-    // clang-format on
 
     //===------------------------------------------------------------------===//
     // PoisonedElementsAttr-style interface
@@ -475,13 +471,9 @@ using maybe_optional_t = typename maybe_optional<T>::type;
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
 template<AttrConstraint ValueAttr, TypeConstraint Type = mlir::Type>
 class ValueOrPoisonAttr : public Attribute {
-    // clang-format off
-
     static_assert(
-        requires(ValueAttr attr) { attr.getType() -> TypeConstraint; },
+        requires(ValueAttr attr) { attr.getType()->TypeConstraint; },
         "ValueAttr must be a TypedAttr.");
-
-    // clang-format on
 
 public:
     /// The underlying value attribute value type, or void.
@@ -514,8 +506,6 @@ public:
 
     using Attribute::Attribute;
 
-    // clang-format off
-
     /// Initializes a ValueOrPoisonAttr from @p attr .
     ///
     /// Only participates in overload resolution if @p ElementType is a
@@ -537,8 +527,6 @@ public:
         requires(std::is_same_v<Type, mlir::Type>)
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
-
-    // clang-format on
 
     /// Determines whether this value is poison.
     ///
@@ -580,13 +568,9 @@ public:
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
 template<AttrConstraint ValueAttr, TypeConstraint ElementType>
 class ValueOrPoisonLikeAttr : public Attribute {
-    // clang-format off
-
     static_assert(
-        requires(ValueAttr attr) { attr.getType() -> TypeConstraint; },
+        requires(ValueAttr attr) { attr.getType()->TypeConstraint; },
         "ValueAttr must be a TypedAttr.");
-
-    // clang-format on
 
 public:
     /// The compatible ValueOrPoisonAttr.

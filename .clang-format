@@ -76,7 +76,7 @@ PPIndentWidth: 4
 PackConstructorInitializers: CurrentLine
 PenaltyBreakBeforeFirstCallParameter: 0
 PenaltyBreakFirstLessLess: 0
-PointerAlignment: Left
+PointerAlignment: Right
 QualifierAlignment: Left
 ReferenceAlignment: Right
 ReflowComments: true

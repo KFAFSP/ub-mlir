@@ -54,7 +54,7 @@ ParseResult PoisonOp::parse(OpAsmParser &p, OperationState &result)
 }
 
 LogicalResult PoisonOp::inferReturnTypes(
-    MLIRContext*,
+    MLIRContext *,
     std::optional<Location>,
     ValueRange,
     DictionaryAttr attributes,
@@ -95,7 +95,7 @@ struct Unpoison : OpRewritePattern<PoisonOp> {
 
 void PoisonOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns,
-    MLIRContext* ctx)
+    MLIRContext *ctx)
 {
     patterns.add<Unpoison>(ctx);
 }
