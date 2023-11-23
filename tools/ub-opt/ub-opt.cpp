@@ -10,6 +10,7 @@
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "ub-mlir/Conversion/Passes.h"
 #include "ub-mlir/Dialect/UBX/IR/UBX.h"
+#include "ub-mlir/Conversion/UBXToLLVM/UBXToLLVM.h"
 
 using namespace mlir;
 
@@ -31,6 +32,7 @@ int main(int argc, char *argv[])
 
     registerAllPasses();
     ubx::registerUBXPasses();
+    ubx::registerConvertUBXToLLVMInterface(registry);
     ub_mlir::registerConversionPasses();
 
     return asMainReturnCode(

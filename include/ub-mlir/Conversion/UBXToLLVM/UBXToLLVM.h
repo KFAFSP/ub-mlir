@@ -26,4 +26,7 @@ void populateConvertUBXToLLVMPatterns(
 /// Constructs the convert-ubx-to-llvm pass.
 std::unique_ptr<Pass> createConvertUBXToLLVMPass();
 
+/// Registers the ConvertToLLVMPatternInterface for the UBX dialect.
+void registerConvertUBXToLLVMInterface(DialectRegistry &registry);
+
 } // namespace mlir::ubx

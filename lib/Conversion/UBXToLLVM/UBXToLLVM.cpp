@@ -5,6 +5,7 @@
 
 #include "ub-mlir/Conversion/UBXToLLVM/UBXToLLVM.h"
 
+#include "mlir/Conversion/ConvertToLLVM/ToLLVMInterface.h"
 #include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Dialect/Index/IR/IndexDialect.h"
@@ -62,6 +63,18 @@ struct ConvertUBXToLLVMPass
     void runOnOperation() override;
 };
 
+struct UBXToLLVMInterface : public ConvertToLLVMPatternInterface {
+    using ConvertToLLVMPatternInterface::ConvertToLLVMPatternInterface;
+
+    virtual void populateConvertToLLVMConversionPatterns(
+        ConversionTarget &,
+        LLVMTypeConverter &typeConverter,
+        RewritePatternSet &patterns) const override
+    {
+        populateConvertUBXToLLVMPatterns(typeConverter, patterns);
+    }
+};
+
 } // namespace
 
 void ConvertUBXToLLVMPass::runOnOperation()
@@ -101,4 +114,11 @@ void mlir::ubx::populateConvertUBXToLLVMPatterns(
 std::unique_ptr<Pass> mlir::ubx::createConvertUBXToLLVMPass()
 {
     return std::make_unique<ConvertUBXToLLVMPass>();
+}
+
+void mlir::ubx::registerConvertUBXToLLVMInterface(DialectRegistry &registry)
+{
+    registry.addExtension(+[](MLIRContext *, ubx::UBXDialect *dialect) {
+        dialect->addInterfaces<UBXToLLVMInterface>();
+    });
 }

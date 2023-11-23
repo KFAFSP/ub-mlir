@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "ub-mlir/Conversion/UBXToLLVM/UBXToLLVM.h"
 #include "ub-mlir/Dialect/UBX/IR/Ops.h"
 #include "ub-mlir/Dialect/UBX/Interfaces/Interfaces.h"
 #include "ub-mlir/Dialect/UBX/Transforms/Passes.h"
