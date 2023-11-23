@@ -12,6 +12,7 @@
 #include "ub-mlir/Dialect/UBX/Interfaces/PoisonAttrInterface.h"
 
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/ADT/iterator.h"
 
 namespace mlir::ubx {
 
@@ -300,6 +301,18 @@ public:
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
+    /// Obtains the poison attribute for @p shapedTy .
+    ///
+    /// @pre    `shapedTy`
+    /// @pre    `llvm::isa<ElementType>(shapedTy.getElementType())`
+    [[nodiscard]] static ElementsOrPoisonAttr
+    get(ShapedType shapedTy, std::nullopt_t)
+    {
+        assert(llvm::isa<ElementType>(shapedTy.getElementType()));
+
+        return llvm::cast<ElementsOrPoisonAttr>(PoisonAttr::get(shapedTy));
+    }
+
     //===------------------------------------------------------------------===//
     // PoisonedElementsAttr-style interface
     //===------------------------------------------------------------------===//
@@ -325,6 +338,11 @@ public:
             .Case([](PoisonAttr) { return true; })
             .Default([](auto) { return false; });
     }
+
+    /// Determines whether this value is well-defined.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] bool isWellDefined() const { return !isPoisoned(); }
 
     /// Gets the underlying elements for this value.
     ///
@@ -427,10 +445,13 @@ public:
         return getType().getNumElements();
     }
 
+    /// Determines whether no elements are contained.
+    [[nodiscard]] bool empty() const { return size() == 0; }
+
     /// Gets the type of the contained aggregate value.
     ///
     /// @pre    `*this`
-    [[nodiscard]] ShapedType getType() const
+    [[nodiscard]] ShapedType getShapedType() const
     {
         return llvm::TypeSwitch<Attribute, ShapedType>(*this)
             .Case([](ElementsAttr attr) { return attr.getType(); })
@@ -446,6 +467,9 @@ public:
     {
         return llvm::cast<ElementType>(getType().getElementType());
     }
+
+    /// @copydoc getShapedType()
+    [[nodiscard]] ShapedType getType() const { return getShapedType(); }
 };
 
 namespace detail {
@@ -478,11 +502,11 @@ class ValueOrPoisonAttr : public Attribute {
 
 public:
     /// The underlying value attribute value type, or void.
-    using ElementType = typename ValueAttr::ValueType;
+    using DataType = typename ValueAttr::ValueType;
     /// The value type of this attribute, or void.
     ///
-    /// Wraps the ElementType in an std::optional, if not void.
-    using ValueType = detail::maybe_optional_t<ElementType>;
+    /// Wraps the DataType in an std::optional, if not void.
+    using ValueType = detail::maybe_optional_t<DataType>;
 
     /// @copydoc classof(Attribute)
     [[nodiscard]] static bool classof(ValueAttr attr)
@@ -509,8 +533,8 @@ public:
 
     /// Initializes a ValueOrPoisonAttr from @p attr .
     ///
-    /// Only participates in overload resolution if @p ElementType is a
-    /// tautological constraint on `attr.getType()`.
+    /// Only participates in overload resolution if @p Type is a tautological
+    /// constraint on `attr.getType()`.
     ///
     /// @pre    `attr`
     /*implicit*/ ValueOrPoisonAttr(ValueAttr attr)
@@ -520,8 +544,8 @@ public:
 
     /// Initializes a ValueOrPoisonAttr from @p attr .
     ///
-    /// Only participates in overload resolution if @p ElementType is a
-    /// tautological constraint.
+    /// Only participates in overload resolution if @p Type is a tautological
+    /// constraint.
     ///
     /// @pre    `attr`
     /*implicit*/ ValueOrPoisonAttr(PoisonAttr attr)
@@ -529,10 +553,50 @@ public:
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
+    /// Obtains the poison atttribute for @p type .
+    ///
+    /// @pre    `type`
+    [[nodiscard]] static ValueOrPoisonAttr get(Type type, std::nullopt_t)
+    {
+        return llvm::cast<ValueOrPoisonAttr>(PoisonAttr::get(type));
+    }
+    /// Obtains the value attribute for @p type and @p value .
+    ///
+    /// Only participate in overload resultion if `ValueAttr::get` can be
+    /// invoked on @p type and @p value .
+    ///
+    /// @pre    `type`
+    [[nodiscard]] static ValueOrPoisonAttr get(Type type, DataType value)
+        requires requires { ValueAttr::get(type, value); }
+    {
+        return llvm::cast<ValueOrPoisonAttr>(ValueAttr::get(type, value));
+    }
+    /// Obtains the ValueOrPoisonAttr for @p type and @p maybeValue .
+    ///
+    /// Only participate in overload resultion if `ValueAttr::get` can be
+    /// invoked on @p type and the contents of @p maybeValue .
+    ///
+    /// @pre    `type`
+    [[nodiscard]] static ValueOrPoisonAttr get(Type type, ValueType maybeValue)
+        requires requires { ValueAttr::get(type, *maybeValue); }
+    {
+        return maybeValue ? get(type, *maybeValue) : get(type, std::nullopt);
+    }
+
     /// Determines whether this value is poison.
     ///
     /// @pre    `*this`
     [[nodiscard]] bool isPoison() const { return llvm::isa<PoisonAttr>(*this); }
+
+    /// Determines whether this value contains any poison.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] bool isPoisoned() const { return isPoison(); }
+
+    /// Determines whether this value is well-defined.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] bool isWellDefined() const { return !isPoisoned(); }
 
     /// Gets the contained value.
     ///
@@ -546,7 +610,7 @@ public:
     {
         if (isPoison()) return std::nullopt;
         const auto valueAttr = llvm::cast<ValueAttr>(*this);
-        return std::optional<ElementType>(std::in_place, valueAttr.getValue());
+        return std::optional<DataType>(std::in_place, valueAttr.getValue());
     }
 
     /// Gets the value type.
@@ -561,23 +625,83 @@ public:
     }
 };
 
+namespace detail {
+
+/// Implements an "iterator" that always yields the same value.
+template<class T>
+struct SingletonIterator : llvm::iterator_facade_base<
+                               SingletonIterator<T>,
+                               std::forward_iterator_tag,
+                               T> {
+    /*implicit*/ SingletonIterator(T value) : m_value(std::move(value)) {}
+
+    [[nodiscard]] const T &operator*() const { return m_value; }
+    SingletonIterator &operator++() { return *this; }
+
+    [[nodiscard]] bool operator==(const SingletonIterator &) const = default;
+
+private:
+    T m_value;
+};
+
+/// Obtains an iterator over the @p splat .
+///
+/// @pre    `splat`
+template<class ValueAttr, class Type>
+    requires(!std::is_void_v<typename ValueAttr::ValueType>)
+FailureOr<PoisonedElementsAttrIterator<typename ValueAttr::ValueType>>
+try_value_begin(ValueOrPoisonAttr<ValueAttr, Type> splat)
+{
+    static constexpr std::array verum{true};
+    static constexpr std::array falsum{false};
+
+    assert(splat);
+
+    using T = typename ValueAttr::ValueType;
+
+    if (splat.isPoison()) {
+        return success(PoisonedElementsAttrIterator<T>(
+            mlir::detail::ElementsAttrIndexer(),
+            mlir::detail::ElementsAttrIndexer::contiguous(true, verum.data()),
+            0));
+    }
+
+    return success(PoisonedElementsAttrIterator<T>(
+        mlir::detail::ElementsAttrIndexer::nonContiguous(
+            true,
+            SingletonIterator<T>(*splat.getValue())),
+        mlir::detail::ElementsAttrIndexer::contiguous(true, falsum.data()),
+        0));
+}
+
+/// Marker for the ValueOrPoisonLikeAttr concept.
+struct ValueOrPoisonLikeAttrBase {};
+
+} // namespace detail
+
 /// Concept for an Attribute that is either @p ValueAttr , a container for it,
 /// or poison.
 ///
 /// Satisfied by a ValueOrPoisonAttr or ElementsOrPoisonAttr.
 ///
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
-template<AttrConstraint ValueAttr, TypeConstraint ElementType>
-class ValueOrPoisonLikeAttr : public Attribute {
+template<AttrConstraint ValueAttr, TypeConstraint ElementType = mlir::Type>
+class ValueOrPoisonLikeAttr : public Attribute,
+                              public detail::ValueOrPoisonLikeAttrBase {
     static_assert(
         requires(ValueAttr attr) { attr.getType(); },
         "ValueAttr must be a TypedAttr.");
 
 public:
     /// The compatible ValueOrPoisonAttr.
-    using ElementAttr = ValueOrPoisonAttr<ValueAttr, ElementType>;
+    using ElementAttr = ValueOrPoisonAttr<ValueAttr, Type>;
     /// The compatible ElementsOrPoisonAttr.
-    using ElementsAttr = ElementsOrPoisonAttr<ElementType>;
+    using ElementsAttr = ElementsOrPoisonAttr<Type>;
+
+    /// The underlying value attribute value type.
+    using DataType = typename ElementAttr::DataType;
+    /// The value type of the compatible ElementAttr.
+    using FoldType = typename ElementAttr::ValueType;
 
     /// @copydoc classof(Attribute)
     [[nodiscard]] static bool classof(ElementAttr) { return true; }
@@ -607,6 +731,40 @@ public:
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
+    /// Obtains the poison attribute for @p type .
+    ///
+    /// @pre    `type`
+    [[nodiscard]] static ValueOrPoisonLikeAttr
+    get(ElementType type, std::nullopt_t)
+    {
+        return ElementAttr::get(type, std::nullopt);
+    }
+    /// Obtains the value attribute for @p type and @p value .
+    ///
+    /// @pre    `type`
+    [[nodiscard]] static ValueOrPoisonLikeAttr
+    get(ElementType type, DataType value)
+    {
+        return ElementAttr::get(type, value);
+    }
+    /// Obtains the value attribute for @p type and @p maybeValue .
+    ///
+    /// @pre    `type`
+    [[nodiscard]] static ValueOrPoisonLikeAttr
+    get(ElementType type, FoldType maybeValue)
+    {
+        return ElementAttr::get(type, maybeValue);
+    }
+    /// Obtains the poison attribute for @p shapedTy .
+    ///
+    /// @pre    `shapedTy`
+    /// @pre    `llvm::isa<ElementType>(shapedTy.getElementType())`
+    [[nodiscard]] static ValueOrPoisonLikeAttr
+    get(ShapedType shapedTy, std::nullopt_t)
+    {
+        return ElementsAttr::get(shapedTy, std::nullopt);
+    }
+
     /// Determines whether this value is fully poisoned.
     ///
     /// @pre    `*this`
@@ -626,6 +784,98 @@ public:
             .Case([](ElementAttr attr) { return attr.isPoisoned(); })
             .Case([](ElementsAttr attr) { return attr.isPoisoned(); });
     }
+
+    /// Determines whether this value is well-defined.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] bool isWellDefined() const { return !isPoisoned(); }
+
+    /// Gets the attribute type.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] Type getType() const
+    {
+        return llvm::TypeSwitch<Attribute, Type>(*this)
+            .Case([](ElementAttr attr) { return attr.getType(); })
+            .Case([](ElementsAttr attr) { return attr.getType(); });
+    }
+
+    /// Gets the underlying element type.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] ElementType getElementType() const
+    {
+        return llvm::TypeSwitch<Attribute, ElementType>(*this)
+            .Case([](ElementAttr attr) { return attr.getType(); })
+            .Case([](ElementsAttr attr) { return attr.getElementType(); });
+    }
+
+    //===------------------------------------------------------------------===//
+    // ElementsAttr-style interface
+    //===------------------------------------------------------------------===//
+
+    using iterator = detail::PoisonedElementsAttrIterator<DataType>;
+    using iterator_range = mlir::detail::ElementsAttrRange<iterator>;
+
+    /// Obtains an iterator over the contained ElementType values.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] FailureOr<iterator> try_value_begin() const
+    {
+        if (const auto elements = llvm::dyn_cast<ElementsAttr>(*this))
+            return elements.template try_value_begin<DataType>();
+
+        return detail::try_value_begin(llvm::cast<ElementAttr>(*this));
+    }
+
+    /// Obtains an iterator over the contained ElementType values.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] iterator value_begin() const { return *try_value_begin(); }
+
+    /// Obtains a range of the contained ElementType values.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] std::optional<iterator_range> tryGetValues() const
+    {
+        if (auto begin = try_value_begin())
+            return iterator_range(getType(), begin, std::next(begin, size()));
+
+        return std::nullopt;
+    }
+
+    /// Obtains a range of the contained ElementType values.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] iterator_range getValues() const { return *tryGetValues(); }
+
+    /// Determines whether all contained values are known to be equal.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] bool isSplat() const
+    {
+        return llvm::TypeSwitch<Attribute, bool>(*this)
+            .Case([](ElementAttr) { return true; })
+            .Case([](ElementsAttr attr) { return attr.isSplat(); });
+    }
+
+    /// Gets the number of elements.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] std::size_t size() const
+    {
+        return llvm::TypeSwitch<Attribute, std::size_t>(*this)
+            .Case([](PoisonAttr attr) -> std::size_t {
+                if (auto shapedTy = llvm::dyn_cast<ShapedType>(attr.getType()))
+                    return shapedTy.getNumElements();
+                return 1;
+            })
+            .Case([](ValueAttr) -> std::size_t { return 1; })
+            .Case([](ElementsAttr attr) { return attr.size(); });
+    }
+
+    /// Determines whether no elements are contained.
+    [[nodiscard]] bool empty() const { return size() == 0; }
 };
 
 } // namespace mlir::ubx

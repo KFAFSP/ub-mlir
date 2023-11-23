@@ -79,3 +79,5 @@ endif()
 
 add_subdirectory(test)
 add_subdirectory(tools)
+enable_testing()
+add_subdirectory(unittest)
