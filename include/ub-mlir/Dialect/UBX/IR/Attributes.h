@@ -215,7 +215,8 @@ try_value_begin(ElementsAttr elements, MaskAttr mask)
             0));
     }
 
-    if (auto elementIndexer = elements.getValuesImpl(TypeID::get<T>())) {
+    auto elementIndexer = elements.getValuesImpl(TypeID::get<T>());
+    if (succeeded(elementIndexer)) {
         return success(PoisonedElementsAttrIterator<T>(
             std::move(elementIndexer).value(),
             mask.getIndexer(),
@@ -472,7 +473,7 @@ using maybe_optional_t = typename maybe_optional<T>::type;
 template<AttrConstraint ValueAttr, TypeConstraint Type = mlir::Type>
 class ValueOrPoisonAttr : public Attribute {
     static_assert(
-        requires(ValueAttr attr) { attr.getType()->TypeConstraint; },
+        requires(ValueAttr attr) { attr.getType(); },
         "ValueAttr must be a TypedAttr.");
 
 public:
@@ -569,7 +570,7 @@ public:
 template<AttrConstraint ValueAttr, TypeConstraint ElementType>
 class ValueOrPoisonLikeAttr : public Attribute {
     static_assert(
-        requires(ValueAttr attr) { attr.getType()->TypeConstraint; },
+        requires(ValueAttr attr) { attr.getType(); },
         "ValueAttr must be a TypedAttr.");
 
 public:
