@@ -1,8 +1,8 @@
-add_mlir_conversion_library(UBXToLLVM
+add_mlir_conversion_library(UBMLIRUBXToLLVM
         UBXToLLVM.cpp
 
     DEPENDS
-        ConversionIncGen
+        UBMLIRConversionIncGen
 
     LINK_COMPONENTS
         Core
@@ -11,5 +11,5 @@ add_mlir_conversion_library(UBXToLLVM
         MLIRDialectUtils
         MLIRTransformUtils
         MLIRLLVMDialect
-        UBXDialect
+        UBMLIRUBXDialect
 )

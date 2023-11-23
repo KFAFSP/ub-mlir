@@ -1,10 +1,10 @@
 ################################################################################
-# UBXIncGen
+# UBMLIRUBXIncGen
 #
 # MLIR UBX dialect generated includes.
 ################################################################################
 
-add_custom_target(UBXIncGen)
+add_custom_target(UBMLIRUBXIncGen)
 
 add_subdirectory(Interfaces)
 add_subdirectory(IR)

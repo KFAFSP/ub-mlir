@@ -1,12 +1,12 @@
-add_mlir_library(UBXTransforms
+add_mlir_library(UBMLIRUBXTransforms
         Freeze.cpp
 
     ENABLE_AGGREGATION
     DEPENDS
-        UBXPassesIncGen
+        UBMLIRUBXPassesIncGen
     LINK_LIBS PUBLIC
         MLIRPass
         MLIRTransforms
         MLIRTransformUtils
-        UBXInterfaces
+        UBMLIRUBXInterfaces
 )

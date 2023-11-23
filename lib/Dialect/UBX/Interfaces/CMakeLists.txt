@@ -1,8 +1,8 @@
-add_mlir_library(UBXInterfaces
+add_mlir_library(UBMLIRUBXInterfaces
         FreezableTypeInterface.cpp
         PoisonAttrInterface.cpp
 
     ENABLE_AGGREGATION
     DEPENDS
-        UBXIncGen
+        UBMLIRUBXIncGen
 )

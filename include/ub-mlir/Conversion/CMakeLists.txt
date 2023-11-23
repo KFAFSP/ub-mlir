@@ -1,3 +1,3 @@
-add_custom_target(ConversionIncGen)
+add_custom_target(UBMLIRConversionIncGen)
 
-mlir_gen_passes(Conversion)
+mlir_gen_passes(UBMLIRConversion Conversion)

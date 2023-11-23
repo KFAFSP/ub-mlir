@@ -27,9 +27,7 @@ function(mlir_gen_iface prefix iface kind)
     add_dependencies(${prefix}IncGen ${prefix}${iface}InterfaceIncGen)
 endfunction()
 
-function(mlir_gen_ir prefix)
-    string(TOLOWER ${prefix} filter)
-
+function(mlir_gen_ir prefix filter)
     set(LLVM_TARGET_DEFINITIONS Ops.td)
 
     mlir_tablegen(Base.h.inc -gen-dialect-decls -dialect=${filter})
@@ -47,10 +45,10 @@ function(mlir_gen_ir prefix)
     add_mlir_doc(Ops ${prefix}Ops Dialects/ -gen-dialect-doc -dialect=${filter})
 endfunction()
 
-function(mlir_gen_passes prefix)
+function(mlir_gen_passes prefix filter)
     set(LLVM_TARGET_DEFINITIONS Passes.td)
 
-    mlir_tablegen(Passes.h.inc -gen-pass-decls -name ${prefix})
+    mlir_tablegen(Passes.h.inc -gen-pass-decls -name ${filter})
     mlir_tablegen(Passes.capi.h.inc -gen-pass-capi-header --prefix ${prefix})
     mlir_tablegen(Passes.capi.cpp.inc -gen-pass-capi-impl --prefix ${prefix})
 

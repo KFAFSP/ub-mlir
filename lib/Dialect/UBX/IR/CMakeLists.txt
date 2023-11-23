@@ -1,16 +1,16 @@
-add_mlir_dialect_library(UBXDialect
+add_mlir_dialect_library(UBMLIRUBXDialect
         Attributes.cpp
         Base.cpp
         Ops.cpp
         Types.cpp
 
     DEPENDS
-        UBXIncGen
+        UBMLIRUBXIncGen
 
     LINK_LIBS PUBLIC
         MLIRIR
         MLIRParser
         MLIRSideEffectInterfaces
-        UBXInterfaces
-        UBXTransforms
+        UBMLIRUBXInterfaces
+        UBMLIRUBXTransforms
 )

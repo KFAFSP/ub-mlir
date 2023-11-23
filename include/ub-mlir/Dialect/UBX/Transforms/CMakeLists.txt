@@ -1,1 +1,1 @@
-mlir_gen_passes(UBX)
+mlir_gen_passes(UBMLIRUBX UBX)

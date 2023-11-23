@@ -1,1 +1,1 @@
-mlir_gen_ir(UBX)
+mlir_gen_ir(UBMLIRUBX ubx)
