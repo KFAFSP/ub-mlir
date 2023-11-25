@@ -52,7 +52,14 @@ public:
         const auto shapedTy = RankedTensorType::get(shape, i1Ty);
         return llvm::cast<MaskAttr>(DenseElementsAttr::get(shapedTy, values));
     }
-
+    /// Obtains a MaskAttr for @p shape and @p splatValue .
+    ///
+    /// @pre    @p shape is static.
+    [[nodiscard]] static MaskAttr
+    get(MLIRContext *ctx, ArrayRef<int64_t> shape, bool splatValue)
+    {
+        return get(ctx, shape, ArrayRef<bool>(splatValue));
+    }
     /// Obtains a MaskAttr for a value of @p shapedTy using @p values .
     ///
     /// @pre    `shapedTy`
@@ -65,16 +72,6 @@ public:
 
         return get(shapedTy.getContext(), shapedTy.getShape(), values);
     }
-
-    /// Obtains a MaskAttr for @p shape and @p splatValue .
-    ///
-    /// @pre    @p shape is static.
-    [[nodiscard]] static MaskAttr
-    get(MLIRContext *ctx, ArrayRef<int64_t> shape, bool splatValue)
-    {
-        return get(ctx, shape, ArrayRef<bool>(splatValue));
-    }
-
     /// Obtains a MaskAttr for a value of @p shapedTy using @p splatValue .
     ///
     /// @pre    `shapedTy`
@@ -286,7 +283,7 @@ public:
     ///
     /// @pre    `attr`
     /*implicit*/ ElementsOrPoisonAttr(ElementsAttr attr)
-        requires(std::is_same_v<ElementType, Type>)
+        requires (std::is_same_v<ElementType, Type>)
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
@@ -297,7 +294,7 @@ public:
     ///
     /// @pre    `attr`
     /*implicit*/ ElementsOrPoisonAttr(PoisonedElementsAttr attr)
-        requires(std::is_same_v<ElementType, Type>)
+        requires (std::is_same_v<ElementType, Type>)
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
@@ -407,11 +404,12 @@ public:
     template<typename T>
     [[nodiscard]] std::optional<iterator_range<T>> tryGetValues() const
     {
-        if (auto begin = try_value_begin<T>()) {
+        auto begin = try_value_begin<T>();
+        if (succeeded(begin)) {
             return iterator_range<T>(
-                getType(),
-                begin,
-                std::next(begin, size()));
+                getShapedType(),
+                *begin,
+                std::next(*begin, size()));
         }
 
         return std::nullopt;
@@ -497,7 +495,7 @@ using maybe_optional_t = typename maybe_optional<T>::type;
 template<AttrConstraint ValueAttr, TypeConstraint Type = mlir::Type>
 class ValueOrPoisonAttr : public Attribute {
     static_assert(
-        requires(ValueAttr attr) { attr.getType(); },
+        requires (ValueAttr attr) { attr.getType(); },
         "ValueAttr must be a TypedAttr.");
 
 public:
@@ -538,7 +536,7 @@ public:
     ///
     /// @pre    `attr`
     /*implicit*/ ValueOrPoisonAttr(ValueAttr attr)
-        requires(std::is_base_of_v<Type, decltype(attr.getType())>)
+        requires (std::is_base_of_v<Type, decltype(attr.getType())>)
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
@@ -549,7 +547,7 @@ public:
     ///
     /// @pre    `attr`
     /*implicit*/ ValueOrPoisonAttr(PoisonAttr attr)
-        requires(std::is_same_v<Type, mlir::Type>)
+        requires (std::is_same_v<Type, mlir::Type>)
             : Attribute(static_cast<Attribute>(attr).getImpl())
     {}
 
@@ -562,7 +560,7 @@ public:
     }
     /// Obtains the value attribute for @p type and @p value .
     ///
-    /// Only participate in overload resultion if `ValueAttr::get` can be
+    /// Only participates in overload resultion if `ValueAttr::get` can be
     /// invoked on @p type and @p value .
     ///
     /// @pre    `type`
@@ -573,12 +571,12 @@ public:
     }
     /// Obtains the ValueOrPoisonAttr for @p type and @p maybeValue .
     ///
-    /// Only participate in overload resultion if `ValueAttr::get` can be
+    /// Only participates in overload resultion if `ValueAttr::get` can be
     /// invoked on @p type and the contents of @p maybeValue .
     ///
     /// @pre    `type`
     [[nodiscard]] static ValueOrPoisonAttr get(Type type, ValueType maybeValue)
-        requires requires { ValueAttr::get(type, *maybeValue); }
+        requires requires { get(type, *maybeValue); }
     {
         return maybeValue ? get(type, *maybeValue) : get(type, std::nullopt);
     }
@@ -606,7 +604,7 @@ public:
     ///
     /// @pre    `*this`
     [[nodiscard]] ValueType getValue() const
-        requires(!std::is_void_v<ValueType>)
+        requires (!std::is_void_v<ValueType>)
     {
         if (isPoison()) return std::nullopt;
         const auto valueAttr = llvm::cast<ValueAttr>(*this);
@@ -648,7 +646,7 @@ private:
 ///
 /// @pre    `splat`
 template<class ValueAttr, class Type>
-    requires(!std::is_void_v<typename ValueAttr::ValueType>)
+    requires (!std::is_void_v<typename ValueAttr::ValueType>)
 FailureOr<PoisonedElementsAttrIterator<typename ValueAttr::ValueType>>
 try_value_begin(ValueOrPoisonAttr<ValueAttr, Type> splat)
 {
@@ -689,7 +687,7 @@ template<AttrConstraint ValueAttr, TypeConstraint ElementType = mlir::Type>
 class ValueOrPoisonLikeAttr : public Attribute,
                               public detail::ValueOrPoisonLikeAttrBase {
     static_assert(
-        requires(ValueAttr attr) { attr.getType(); },
+        requires (ValueAttr attr) { attr.getType(); },
         "ValueAttr must be a TypedAttr.");
 
 public:
@@ -760,7 +758,7 @@ public:
     /// @pre    `shapedTy`
     /// @pre    `llvm::isa<ElementType>(shapedTy.getElementType())`
     [[nodiscard]] static ValueOrPoisonLikeAttr
-    get(ShapedType shapedTy, std::nullopt_t)
+    getSplat(ShapedType shapedTy, std::nullopt_t)
     {
         return ElementsAttr::get(shapedTy, std::nullopt);
     }
@@ -838,8 +836,14 @@ public:
     /// @pre    `*this`
     [[nodiscard]] std::optional<iterator_range> tryGetValues() const
     {
-        if (auto begin = try_value_begin())
-            return iterator_range(getType(), begin, std::next(begin, size()));
+        auto begin = try_value_begin();
+        if (succeeded(begin)) {
+            // Allow iteration even if the value is not shaped.
+            auto shapedTy = llvm::dyn_cast<ShapedType>(getType());
+            if (!shapedTy) shapedTy = RankedTensorType::get({1}, getType());
+
+            return iterator_range(shapedTy, *begin, std::next(*begin, size()));
+        }
 
         return std::nullopt;
     }

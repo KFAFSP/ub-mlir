@@ -151,11 +151,12 @@ def UBX_PoisonedElementsAttr : UBX_Attr<
         /// Obtains a range of the contained `std::optional<T>` values.
         template<typename T>
         [[nodiscard]] std::optional<iterator_range<T>> tryGetValues() const {
-            if (auto begin = try_value_begin<T>()) {
+            auto begin = try_value_begin<T>();
+            if (succeeded(begin)) {
                 return iterator_range<T>(
                     getType(),
-                    begin,
-                    std::next(begin, size()));
+                    *begin,
+                    std::next(*begin, size()));
             }
 
             return std::nullopt;

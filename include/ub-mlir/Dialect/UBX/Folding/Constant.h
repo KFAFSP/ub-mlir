@@ -49,29 +49,30 @@ public:
     {
         return llvm::cast<Derived>(Base::get(type, maybeValue));
     }
+    // Derived must override this method!
+    [[nodiscard]] static Derived
+    get(ShapedType shapedTy,
+        ArrayRef<DataType> values,
+        ArrayRef<bool> mask = {});
     /// Obtains the poison attribute for @p shapedTy .
     ///
     /// @pre    `shapedTy`
     /// @pre    `llvm::isa<ElementType>(shapedTy.getElementType())`
-    [[nodiscard]] static Derived get(ShapedType shapedTy, std::nullopt_t)
+    [[nodiscard]] static Derived getSplat(ShapedType shapedTy, std::nullopt_t)
     {
-        return llvm::cast<Derived>(Base::get(shapedTy, std::nullopt));
+        return llvm::cast<Derived>(Base::getSplat(shapedTy, std::nullopt));
     }
     /// Obtains the constant attribute for @p shapedTy and @p splatValue .
     ///
     /// @pre    `shapedTy`
     /// @pre    `llvm::isa<ElementType>(shapedTy.getElementType())`
-    [[nodiscard]] static Derived get(ShapedType shapedTy, FoldType splatValue)
+    [[nodiscard]] static Derived
+    getSplat(ShapedType shapedTy, FoldType splatValue)
     {
-        if (splatValue) return Derived::getDense(shapedTy, *splatValue);
-        return Derived::get(shapedTy, std::nullopt);
+        if (splatValue)
+            return Derived::get(shapedTy, ArrayRef<DataType>(*splatValue), {});
+        return Derived::getSplat(shapedTy, std::nullopt);
     }
-
-    // Derived must override this method!
-    [[nodiscard]] static Derived getDense(
-        ShapedType shapedTy,
-        ArrayRef<DataType> values,
-        ArrayRef<bool> mask = {});
 
     /// Applies @p fn to this and @p args .
     ///
@@ -79,12 +80,13 @@ public:
     /// @pre    @p fn must be invocable on the fold types of the operands.
     /// @pre    @p fn must return void.
     void apply(auto fn, auto... args) const
-        requires(std::is_void_v<decltype(ubx::apply(std::move(fn), args...))>)
+        requires (
+            std::is_void_v<decltype(ubx::apply(std::move(fn), *this, args...))>)
     {
-        ubx::apply(std::move(fn), args...);
+        ubx::apply(std::move(fn), *this, args...);
     }
 
-    /// Applies @p fn to this and @p args .
+    /// Applies @p fn to this and @p args , producing @p elementTy .
     ///
     /// @pre    @p operands must be derived from ValueOrPoisonLikeAttr.
     /// @pre    @p fn must be invocable on the fold types of the operands.
@@ -92,42 +94,45 @@ public:
     /// @pre    The shapes of all operands must match.
     [[nodiscard]] Derived
     map(ElementType elementTy, auto fn, auto... args) const
-        requires(!std::is_void_v<decltype(apply(std::move(fn), args...))>)
+        requires (!std::is_void_v<
+                  decltype(ubx::apply(std::move(fn), *this, args...))>)
     {
         if (const auto shapedTy = llvm::dyn_cast<ShapedType>(this->getType())) {
-            elementTy = elementTy ? elementTy : shapedTy.getElementType();
+            elementTy =
+                elementTy ? elementTy
+                          : llvm::cast<ElementType>(shapedTy.getElementType());
             const auto resultTy = shapedTy.cloneWith(std::nullopt, elementTy);
-            return getShaped(resultTy, apply(std::move(fn), args...));
+            return _get(resultTy, ubx::apply(std::move(fn), *this, args...));
         }
 
         if (!elementTy) elementTy = llvm::cast<ElementType>(this->getType());
-        return getElement(elementTy, apply(std::move(fn), args...));
+        return _get(elementTy, ubx::apply(std::move(fn), *this, args...));
     }
 
 private:
     [[nodiscard]] static Derived
-    getShaped(ShapedType shapedTy, SmallVector<DataType> values)
+    _get(ShapedType shapedTy, SmallVector<DataType> values)
     {
-        return Derived::getDense(shapedTy, values, {});
+        return Derived::get(shapedTy, values, {});
     }
-    [[nodiscard]] static Derived getShaped(
+    [[nodiscard]] static Derived _get(
         ShapedType shapedTy,
         std::pair<SmallVector<DataType>, SmallVector<bool>> values)
     {
-        return Derived::getDense(shapedTy, values.first, values.second);
+        return Derived::get(shapedTy, values.first, values.second);
     }
 
     [[nodiscard]] static Derived
-    getElement(ElementType type, SmallVector<DataType> values)
+    _get(ElementType type, SmallVector<DataType> values)
     {
         assert(values.size() == 1);
         return Derived::get(type, values.front());
     }
-    [[nodiscard]] static Derived getElement(
+    [[nodiscard]] static Derived _get(
         ElementType type,
         std::pair<SmallVector<DataType>, SmallVector<bool>> values)
     {
-        assert(values.size() == 1);
+        assert(values.first.size() == 1);
         if (values.second.front()) return Derived::get(type, std::nullopt);
         return Derived::get(type, values.first.front());
     }
