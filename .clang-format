@@ -66,7 +66,7 @@ IndentCaseLabels: false
 IndentExternBlock: NoIndent
 IndentGotoLabels: true
 IndentPPDirectives: AfterHash
-#IndentRequiresClause: true
+IndentRequiresClause: true
 IndentWidth: 4
 IndentWrappedFunctionNames: false
 Language: Cpp
@@ -81,7 +81,7 @@ QualifierAlignment: Left
 ReferenceAlignment: Right
 ReflowComments: true
 RemoveBracesLLVM: true
-#RequiresClausePosition: OwnLine
+RequiresClausePosition: OwnLine
 SeparateDefinitionBlocks: Leave
 ShortNamespaceLines: 0
 SortIncludes: CaseSensitive
@@ -101,8 +101,8 @@ SpaceBeforeParensOptions:
     AfterFunctionDeclarationName: false
     AfterFunctionDefinitionName: false
     AfterOverloadedOperator: false
-    #AfterRequiresInClause: true
-    #AfterRequiresInExpression: true
+    AfterRequiresInClause: true
+    AfterRequiresInExpression: true
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceBeforeSquareBrackets: false
 SpaceInEmptyBlock: false
