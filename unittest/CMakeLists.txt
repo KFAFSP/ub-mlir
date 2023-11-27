@@ -12,12 +12,15 @@ include(doctest)
 include(CTest)
 
 add_executable(${PROJECT_NAME}
-    main.cpp
     Constant.cpp
+    FoldingContext.cpp
+    main.cpp
 )
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         UBMLIRUBXDialect
+        UBMLIRExtensions
+        MLIRArithDialect
 )
 target_compile_options(${PROJECT_NAME}
     PRIVATE

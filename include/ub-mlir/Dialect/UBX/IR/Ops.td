@@ -56,6 +56,10 @@ def UBX_PoisonOp : UBX_ConstantOpBase<
     }];
 
     let arguments = (ins UBX_PoisonAttrInterface:$value);
+    let builders = [
+        OpBuilder<(ins "Type":$type), [{
+            build($_builder, $_state, PoisonAttr::get(type));
+        }]>];
 
     // NOTE: The assemblyFormat does not want to work correctly...
     let hasCustomAssemblyFormat = 1;

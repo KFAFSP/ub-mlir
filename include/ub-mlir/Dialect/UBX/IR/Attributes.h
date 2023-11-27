@@ -241,7 +241,7 @@ namespace mlir::ubx {
 ///
 /// Satisfied by an ElementsAttr, PoisonAttr or PoisonedElementsAttr that has an
 /// element type matching @p ElementType .
-template<TypeConstraint ElementType = Type>
+template<ext::TypeConstraint ElementType = Type>
 class ElementsOrPoisonAttr : public Attribute {
 public:
     /// @copydoc classof(Attribute)
@@ -492,7 +492,7 @@ using maybe_optional_t = typename maybe_optional<T>::type;
 /// Satisfied by a ValueAttr or PoisonAttr that has a type matching @p Type .
 ///
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
-template<AttrConstraint ValueAttr, TypeConstraint Type = mlir::Type>
+template<ext::AttrConstraint ValueAttr, ext::TypeConstraint Type = mlir::Type>
 class ValueOrPoisonAttr : public Attribute {
     static_assert(
         requires (ValueAttr attr) { attr.getType(); },
@@ -683,7 +683,9 @@ struct ValueOrPoisonLikeAttrBase {};
 /// Satisfied by a ValueOrPoisonAttr or ElementsOrPoisonAttr.
 ///
 /// @pre    `requires (ValueAttr valueAttr) { valueAttr.getType() }`
-template<AttrConstraint ValueAttr, TypeConstraint ElementType = mlir::Type>
+template<
+    ext::AttrConstraint ValueAttr,
+    ext::TypeConstraint ElementType = mlir::Type>
 class ValueOrPoisonLikeAttr : public Attribute,
                               public detail::ValueOrPoisonLikeAttrBase {
     static_assert(
@@ -692,9 +694,9 @@ class ValueOrPoisonLikeAttr : public Attribute,
 
 public:
     /// The compatible ValueOrPoisonAttr.
-    using ElementAttr = ValueOrPoisonAttr<ValueAttr, Type>;
+    using ElementAttr = ValueOrPoisonAttr<ValueAttr, ElementType>;
     /// The compatible ElementsOrPoisonAttr.
-    using ElementsAttr = ElementsOrPoisonAttr<Type>;
+    using ElementsAttr = ElementsOrPoisonAttr<ElementType>;
 
     /// The underlying value attribute value type.
     using DataType = typename ElementAttr::DataType;
@@ -861,6 +863,20 @@ public:
         return llvm::TypeSwitch<Attribute, bool>(*this)
             .Case([](ElementAttr) { return true; })
             .Case([](ElementsAttr attr) { return attr.isSplat(); });
+    }
+
+    /// Attempts to get the splat value, if all values are known to be equal.
+    ///
+    /// @pre    `*this`
+    [[nodiscard]] FoldType tryGetSplatValue() const
+    {
+        return llvm::TypeSwitch<Attribute, FoldType>(*this)
+            .Case([](ElementAttr attr) { return attr.getValue(); })
+            .Case([](ElementsAttr attr) -> FoldType {
+                if (attr.isSplat())
+                    return *attr.template value_begin<DataType>();
+                return std::nullopt;
+            });
     }
 
     /// Gets the number of elements.

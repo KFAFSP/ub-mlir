@@ -16,8 +16,8 @@ namespace mlir::ubx {
 /// Base class for deriving constant-foldable attribute concepts.
 template<
     class Derived,
-    AttrConstraint ValueAttr,
-    TypeConstraint ElementType = mlir::Type>
+    ext::AttrConstraint ValueAttr,
+    ext::TypeConstraint ElementType = mlir::Type>
 class ConstantLike : public ValueOrPoisonLikeAttr<ValueAttr, ElementType> {
 public:
     using Base = ValueOrPoisonLikeAttr<ValueAttr, ElementType>;
