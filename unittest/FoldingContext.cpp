@@ -147,7 +147,7 @@ static std::string stringify(FailureOr<OpFoldResult> result)
     return "error";
 }
 
-TEST_CASE("FoldContext")
+TEST_CASE("FoldingContext")
 {
     MLIRContext ctx;
     ctx.loadDialect<ubx::UBXDialect>();
